@@ -818,11 +818,11 @@ static std::string model_mode_from_path(const std::string& path) {
         return static_cast<char>(std::tolower(ch));
     });
 
-    if (file_name == "non-uyghur.model") {
+    if (file_name == "whisper-small-q5_0.bin") {
         return "non-uyghur";
     }
 
-    if (file_name == "uyghur-fast.model") {
+    if (file_name == "whisper-small-uyghur-q5_0.bin") {
         return "fast";
     }
 
@@ -2150,12 +2150,12 @@ int main(int argc, char** argv) {
     log_registered_backends();
 
     const std::string vad_model_path =
-        env_var_string("UGASR_HELPER_MODEL_PATH", "./helper.model");
+        env_var_string("UGASR_HELPER_MODEL_PATH", "./silero-v6.2.1-ggml.bin");
 
     const std::string whisper_model_path =
         env_var_string(
             "UGASR_WHISPER_MODEL_PATH",
-            env_var_string("UGASR_UYGHUR_MODEL_PATH", "./uyghur-fast.model")
+            env_var_string("UGASR_UYGHUR_MODEL_PATH", "./whisper-small-uyghur-q5_0.bin")
         );
     const std::string whisper_model_family =
         env_var_string("UGASR_ASR_MODEL_FAMILY", "uyghur");

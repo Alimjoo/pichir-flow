@@ -49,8 +49,8 @@ ASR.exe
 默认需要的文件：
 
 ```text
-helper.model
-uyghur-fast.model
+silero-v6.2.1-ggml.bin
+whisper-small-uyghur-q5_0.bin
 ```
 
 如果使用桌面应用，应用会自动启动本地服务，一般不需要手动运行。
@@ -64,17 +64,17 @@ WebSocket API 不能切换模型。服务启动时加载哪个模型，之后本
 macOS / Linux：
 
 ```bash
-UGASR_UYGHUR_MODEL_PATH=./uyghur-fast.model ./ASR
+UGASR_UYGHUR_MODEL_PATH=./whisper-small-uyghur-q5_0.bin ./ASR
 ```
 
 Windows PowerShell：
 
 ```powershell
-$env:UGASR_UYGHUR_MODEL_PATH=".\uyghur-fast.model"
+$env:UGASR_UYGHUR_MODEL_PATH=".\whisper-small-uyghur-q5_0.bin"
 .\ASR.exe
 ```
 
-模型文件名保持 `.model` 结尾。
+默认模型文件使用公开模型名。
 
 ## 音频格式
 

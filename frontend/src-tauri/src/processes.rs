@@ -661,8 +661,8 @@ const ASR_MODEL_MIN_BYTES: u64 = 30_000_000;
 
 fn model_file_name_for_mode(mode: &str) -> &'static str {
     match mode {
-        "fast" | "normal" | "slow" => "uyghur-fast.model",
-        _ => "uyghur-fast.model",
+        "fast" | "normal" | "slow" => "whisper-small-uyghur-q5_0.bin",
+        _ => "whisper-small-uyghur-q5_0.bin",
     }
 }
 
@@ -721,13 +721,13 @@ fn resolve_model_paths(
     asr_language: Option<String>,
 ) -> Result<ModelPaths, String> {
     let asr_language = normalize_asr_language(asr_language);
-    let bundled_helper = server_dir.join("helper.model");
+    let bundled_helper = server_dir.join("silero-v6.2.1-ggml.bin");
     let app_model_dir = model_dir(app, server_dir);
     let helper = resolve_required_model_file(
         "ASR helper model",
         &[
             bundled_helper,
-            app_model_dir.join("helper.model"),
+            app_model_dir.join("silero-v6.2.1-ggml.bin"),
         ],
         HELPER_MODEL_MIN_BYTES,
     )?;
@@ -736,8 +736,8 @@ fn resolve_model_paths(
         let whisper = resolve_required_model_file(
             "non-Uyghur ASR model",
             &[
-                server_dir.join("non-uyghur.model"),
-                app_model_dir.join("non-uyghur.model"),
+                server_dir.join("whisper-small-q5_0.bin"),
+                app_model_dir.join("whisper-small-q5_0.bin"),
             ],
             ASR_MODEL_MIN_BYTES,
         )?;
