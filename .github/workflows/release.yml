@@ -78,12 +78,13 @@ jobs:
             libvulkan-dev \
             libwebkit2gtk-4.1-dev \
             patchelf \
+            spirv-headers \
             vulkan-tools
         shell: bash
 
       - name: Install macOS Vulkan SDK dependencies
         if: runner.os == 'macOS' && matrix.install_vulkan == 'true'
-        run: brew install molten-vk shaderc vulkan-headers vulkan-loader
+        run: brew install molten-vk shaderc spirv-headers vulkan-headers vulkan-loader
         shell: bash
 
       - name: Install Windows Vulkan SDK
@@ -128,8 +129,23 @@ jobs:
       - name: Build native ASR sidecar
         env:
           CMAKE_BACKEND_ARGS: ${{ matrix.cmake_backend_args }}
+          INSTALL_VULKAN: ${{ matrix.install_vulkan }}
         run: |
           whisper_cpp_dir="$(pwd)/whisper.cpp"
+
+          if [[ "$RUNNER_OS" == "macOS" && "${INSTALL_VULKAN}" == "true" ]]; then
+            spirv_include="$(brew --prefix spirv-headers)/include"
+            vulkan_include="$(brew --prefix vulkan-headers)/include"
+
+            if [[ ! -f "${spirv_include}/spirv/unified1/spirv.hpp" ]]; then
+              echo "::error::SPIR-V header was not found at ${spirv_include}/spirv/unified1/spirv.hpp"
+              exit 1
+            fi
+
+            export CPATH="${spirv_include}:${vulkan_include}:${CPATH:-}"
+            export CPLUS_INCLUDE_PATH="${spirv_include}:${vulkan_include}:${CPLUS_INCLUDE_PATH:-}"
+          fi
+
           cmake_args=(
             -S .
             -B build
@@ -152,12 +168,23 @@ jobs:
       - name: Bundle Windows Vulkan runtime
         if: runner.os == 'Windows' && matrix.install_vulkan == 'true'
         run: |
-          $loader = Join-Path $env:VULKAN_SDK "Bin\vulkan-1.dll"
-          if (-not (Test-Path $loader)) {
-            throw "Vulkan loader was not found: $loader"
+          $searchRoots = @()
+          if ($env:VULKAN_SDK) {
+            $searchRoots += Join-Path $env:VULKAN_SDK "Bin"
+            $searchRoots += Join-Path $env:VULKAN_SDK "Bin32"
           }
-          Copy-Item $loader "frontend/src-tauri/server/vulkan-1.dll" -Force
-          Get-Item "frontend/src-tauri/server/vulkan-1.dll"
+          $searchRoots += Join-Path $env:WINDIR "System32"
+          $searchRoots += Join-Path $env:WINDIR "SysWOW64"
+
+          $loader = Get-ChildItem -Path $searchRoots -Filter "vulkan-1.dll" -File -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+
+          if ($loader) {
+            Copy-Item $loader.FullName "frontend/src-tauri/server/vulkan-1.dll" -Force
+            Get-Item "frontend/src-tauri/server/vulkan-1.dll"
+          } else {
+            Write-Warning "vulkan-1.dll was not found in the SDK or Windows system directories. Continuing because Vulkan drivers normally install the loader on target machines."
+          }
         shell: pwsh
 
       - name: Bundle macOS Vulkan runtime
