@@ -17,6 +17,11 @@ const textFiles = [
   { source: "index.html", kind: "html" },
   { source: "main.js", kind: "js" },
   { source: "asr.js", kind: "js" },
+  { source: "locale/index.js", kind: "js" },
+  { source: "locale/english.js", kind: "js" },
+  { source: "locale/uyghur.js", kind: "js" },
+  { source: "locale/chinese.js", kind: "js" },
+  { source: "locale/spanish.js", kind: "js" },
   { source: "styles.css", kind: "css" },
 ];
 

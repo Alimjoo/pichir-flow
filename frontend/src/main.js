@@ -17,6 +17,11 @@ import {
   resampleBuffer,
   supportedMediaFiles,
 } from './asr.js';
+import {
+  DEFAULT_DISPLAY_LANGUAGE,
+  DISPLAY_LANGUAGE_OPTIONS,
+  LOCALES,
+} from './locale/index.js';
 let ws = null;
 let reconnectTimer = null;
 let ensureServerPromise = null;
@@ -56,8 +61,15 @@ let resultViewMode = "timeline";
 let appSettings = {
   asrLanguage: "Uyghur",
   maxUnconfirmedSec: 15,
+  displayLanguage: DEFAULT_DISPLAY_LANGUAGE,
 };
 let pendingSettings = { ...appSettings };
+let activeLocale = LOCALES[DEFAULT_DISPLAY_LANGUAGE];
+let currentStatus = {
+  key: "status.modelStarting",
+  params: {},
+  text: "",
+};
 let activeServerModelMode = null;
 let serverIndicatorState = "offline";
 let modelChangedStatusUntil = 0;
@@ -73,23 +85,21 @@ const WS_CONNECT_TIMEOUT_MS = 120000;
 const PROJECTS_KEY = "ugasr.projects.v1";
 const RESULT_VIEW_KEY = "ugasr.resultView.v1";
 const SETTINGS_KEY = "ugasr.settings.v1";
-const SETTINGS_VERSION = 2;
+const SETTINGS_VERSION = 3;
 const DEFAULT_MAX_UNCONFIRMED_SEC = 15;
 const MEDIA_DB_NAME = "ugasr-media";
 const MEDIA_DB_VERSION = 1;
 const MEDIA_STORE_NAME = "media";
-const APP_NAME = "كۆپ تىل ئاۋاز تونۇش";
-const MICROPHONE_PROJECT_TITLE = "مىكروفون تونۇشى";
 const ASR_PROJECT_SOURCE_TYPES = new Set(["microphone", "file", "video"]);
-const STATUS_TEXT = {
-  connected: "ئۇلانغان",
-  stopped: "توختىدى",
-  cancelled: "توختىتىلدى",
-  recording: "ئۈنگە ئېلىۋاتىدۇ...",
-  "processing remaining audio": "قالغان ئاۋاز بىر تەرەپ قىلىنىۋاتىدۇ...",
-  "swaping model(مودىل ئالماشتۇرىلىۋاتىدۇ)": "مودىل ئالماشتۇرىلىۋاتىدۇ",
-  "model changed(مودىل ئالماشتۇرۇلدى)": "مودىل ئالماشتۇرۇلدى",
-  "model error": "مودىل خاتالىقى",
+const STATUS_TEXT_KEYS = {
+  connected: "status.connected",
+  stopped: "status.stopped",
+  cancelled: "status.cancelled",
+  recording: "status.recording",
+  "processing remaining audio": "status.processingRemaining",
+  "swaping model(مودىل ئالماشتۇرىلىۋاتىدۇ)": "status.modelSwapping",
+  "model changed(مودىل ئالماشتۇرۇلدى)": "status.modelChanged",
+  "model error": "status.modelError",
 };
 
 const confirmedEl = document.getElementById("confirmed");
@@ -118,6 +128,7 @@ const settingsConfirmBtn = document.getElementById("settingsConfirmBtn");
 const asrLanguageSelectEl = document.getElementById("asrLanguageSelect");
 const maxUnconfirmedRangeEl = document.getElementById("maxUnconfirmedRange");
 const maxUnconfirmedValueEl = document.getElementById("maxUnconfirmedValue");
+const displayLanguageSelectEl = document.getElementById("displayLanguageSelect");
 const asrPanelEl = document.getElementById("asrPanel");
 const asrBatchProgressEl = document.getElementById("asrBatchProgress");
 const asrBatchProgressLabelEl = document.getElementById("asrBatchProgressLabel");
@@ -140,39 +151,54 @@ async function invokeProtectedCommand(command, args = {}) {
   return await tauriInvoke(command, args);
 }
 
-function secureTextMap(entries) {
-  return new Map(
-    entries
-      .filter((entry) => entry && typeof entry.key === "string")
-      .map((entry) => [entry.key, String(entry.value ?? "")]),
+function normalizeDisplayLanguage(value) {
+  const language = String(value || "").trim();
+  return LOCALES[language] ? language : DEFAULT_DISPLAY_LANGUAGE;
+}
+
+function localeTextMap(locale = activeLocale) {
+  return locale?.ui || {};
+}
+
+function hasTranslationKey(key) {
+  return Boolean(
+    localeTextMap(activeLocale)[key] ||
+      localeTextMap(LOCALES[DEFAULT_DISPLAY_LANGUAGE])[key],
   );
 }
 
-async function loadSecureTextMap() {
-  const entries = await invokeProtectedCommand("secure_texts");
-  return secureTextMap(entries);
+function t(key, params = {}) {
+  const template =
+    localeTextMap(activeLocale)[key] ||
+    localeTextMap(LOCALES[DEFAULT_DISPLAY_LANGUAGE])[key] ||
+    key;
+
+  return String(template).replace(/\{([a-zA-Z0-9_]+)\}/g, (match, name) => {
+    const value = params[name];
+    return value === undefined || value === null ? match : String(value);
+  });
 }
 
-async function installSecureTexts() {
-  const textByKey = await loadSecureTextMap();
+function setActiveLocale(displayLanguage) {
+  const code = normalizeDisplayLanguage(displayLanguage);
+  activeLocale = LOCALES[code] || LOCALES[DEFAULT_DISPLAY_LANGUAGE];
+  document.documentElement.lang = activeLocale.htmlLang || "en";
+  document.documentElement.dir = activeLocale.dir || "ltr";
+  document.body.dir = activeLocale.dir || "ltr";
+}
 
-  for (const el of document.querySelectorAll("[data-secure-text]")) {
-    const value = textByKey.get(el.dataset.secureText);
-    if (value !== undefined) {
-      el.textContent = value;
-    }
+function applyLocaleToDom() {
+  for (const el of document.querySelectorAll("[data-i18n]")) {
+    el.textContent = t(el.dataset.i18n);
   }
 
-  for (const el of document.querySelectorAll("[data-secure-title]")) {
-    const value = textByKey.get(el.dataset.secureTitle);
-    if (value !== undefined) {
-      el.setAttribute("title", value);
-      if (!el.hasAttribute("aria-label")) {
-        el.setAttribute("aria-label", value);
-      }
-    }
+  for (const el of document.querySelectorAll("[data-i18n-title]")) {
+    el.setAttribute("title", t(el.dataset.i18nTitle));
   }
 
+  for (const el of document.querySelectorAll("[data-i18n-aria-label]")) {
+    el.setAttribute("aria-label", t(el.dataset.i18nAriaLabel));
+  }
 }
 
 async function verifySecureImage(imageEl) {
@@ -217,7 +243,6 @@ function installSecureImages() {
 }
 
 async function installProtectedUi() {
-  await installSecureTexts();
   installSecureImages();
 }
 
@@ -227,8 +252,38 @@ function renderText() {
   unconfirmedEl.textContent = normalizeTranscriptText(unconfirmedText);
 }
 
-function setStatus(text) {
-  statusEl.textContent = STATUS_TEXT[text] || text;
+function resolveStatus(value, params = {}) {
+  const key = STATUS_TEXT_KEYS[value] || (hasTranslationKey(value) ? value : "");
+
+  if (key) {
+    return {
+      key,
+      params,
+      text: t(key, params),
+    };
+  }
+
+  return {
+    key: "",
+    params: {},
+    text: String(value || ""),
+  };
+}
+
+function setStatus(value, params = {}) {
+  const status = resolveStatus(value, params);
+  currentStatus = status;
+  statusEl.textContent = status.text;
+}
+
+function statusValueMatchesKey(value, key) {
+  return resolveStatus(value).key === key || String(value || "") === t(key);
+}
+
+function refreshCurrentStatusText() {
+  if (currentStatus.key) {
+    statusEl.textContent = t(currentStatus.key, currentStatus.params);
+  }
 }
 
 function sendServerCommand(type, extra = {}) {
@@ -284,8 +339,18 @@ function setBackendLabel(text) {
 }
 
 function updateModeTitle() {
-  appTitleEl.textContent = "ئاۋاز تونۇش";
-  document.title = APP_NAME;
+  appTitleEl.textContent = t("app.title");
+  document.title = t("app.name");
+}
+
+function applyLocale() {
+  applyLocaleToDom();
+  updateModeTitle();
+  renderSettings();
+  updateSelectedFileName();
+  renderProjects();
+  renderActiveProject();
+  refreshCurrentStatusText();
 }
 
 function errorMessage(err) {
@@ -322,13 +387,15 @@ function updateSelectedFileName() {
         : Array.from(audioFileEl.files || []).filter(isMediaSelection);
 
   if (selectedFiles.length > 1) {
-    selectedFileNameEl.textContent = `${selectedFiles.length} ھۆججەت تاللاندى`;
+    selectedFileNameEl.textContent = t("file.selectedCount", {
+      count: selectedFiles.length,
+    });
     return;
   }
 
   selectedFileNameEl.textContent =
     selectedFiles[0]?.name ||
-    "ھۆججەت تاللانمىدى";
+    t("file.none");
 }
 
 function fileNameFromPath(path, fallback = "media") {
@@ -360,7 +427,7 @@ async function selectAsrNativeMediaPaths(mediaFiles) {
   const supported = supportedMediaFiles(mediaFiles);
 
   if (supported.length === 0) {
-    setStatus("ئاۋاز ياكى ۋىدېئو ھۆججىتى تاللاڭ");
+    setStatus("file.selectAudioVideo");
     return;
   }
 
@@ -375,7 +442,12 @@ async function selectAsrNativeMediaPaths(mediaFiles) {
       .map((mediaFile) => allowNativeFilePath(mediaFile.path)),
   );
   updateSelectedFileName();
-  setStatus(supported.length > 1 ? `${supported.length} ھۆججەت تاللاندى` : "ھۆججەت تاللاندى");
+  setStatus(
+    supported.length > 1
+      ? "file.selectedCount"
+      : "file.selected",
+    { count: supported.length },
+  );
 }
 
 function selectAsrDroppedMediaFile(file) {
@@ -386,7 +458,7 @@ function selectAsrDroppedMediaFiles(files) {
   const supported = supportedMediaFiles(files);
 
   if (supported.length === 0) {
-    setStatus("ئاۋاز ياكى ۋىدېئو ھۆججىتى تاللاڭ");
+    setStatus("file.selectAudioVideo");
     return;
   }
 
@@ -396,7 +468,12 @@ function selectAsrDroppedMediaFiles(files) {
   selectedDroppedMediaFile = supported[0] || null;
   audioFileEl.value = "";
   updateSelectedFileName();
-  setStatus(supported.length > 1 ? `${supported.length} ھۆججەت تاللاندى` : "ھۆججەت تاللاندى");
+  setStatus(
+    supported.length > 1
+      ? "file.selectedCount"
+      : "file.selected",
+    { count: supported.length },
+  );
 }
 
 async function pickNativeMediaFile() {
@@ -426,7 +503,7 @@ async function pickNativeMediaFile() {
     );
   } catch (err) {
     console.error(err);
-    setStatus(`ھۆججەت تاللاش خاتالىقى: ${errorMessage(err)}`);
+    setStatus("file.pickError", { message: errorMessage(err) });
   }
 }
 
@@ -477,30 +554,30 @@ async function getMicrophoneStream() {
 
 function microphoneStatusText(err) {
   if (err?.name === "NotAllowedError" || err?.name === "SecurityError") {
-    return "مىكروفون رۇخسىتى بېرىلمىدى. Windows Settings > Privacy & security > Microphone دىن رۇخسەت بېرىڭ";
+    return t("microphone.permission");
   }
 
   if (err?.name === "NotFoundError" || err?.name === "DevicesNotFoundError") {
-    return "مىكروفون تېپىلمىدى";
+    return t("microphone.notFound");
   }
 
   if (err?.name === "NotReadableError" || err?.name === "TrackStartError") {
-    return "مىكروفون باشقا پروگرامما تەرىپىدىن ئىشلىتىلىۋاتقان بولۇشى مۇمكىن";
+    return t("microphone.notReadable");
   }
 
   if (err?.name === "NotSupportedError") {
-    return "بۇ Windows WebView دا مىكروفون API تېپىلمىدى";
+    return t("microphone.notSupported");
   }
 
-  return "مىكروفون ئىشلىمىدى";
+  return t("microphone.failed");
 }
 
 function serverStartupStatusText(err) {
   const message = String(err?.message || err || "").trim();
 
   return message
-    ? `مودىل قوزغالمىدى: ${message}`
-    : "مودىل قوزغالمىدى";
+    ? t("status.serverStartupFailedWithMessage", { message })
+    : t("status.serverStartupFailed");
 }
 
 function normalizeTranscriptText(text) {
@@ -547,7 +624,7 @@ function lastProjectSegmentEndMs(project) {
 }
 
 function formatDate(timestamp) {
-  return new Date(timestamp).toLocaleString("ug-CN", {
+  return new Date(timestamp).toLocaleString(activeLocale.dateLocale || "en-US", {
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
@@ -936,21 +1013,20 @@ function loadSettings() {
 
     appSettings = {
       asrLanguage: normalizeAsrLanguage(saved.asrLanguage),
-      maxUnconfirmedSec:
-        saved.version === SETTINGS_VERSION
-          ? clampNumber(
-              saved.maxUnconfirmedSec,
-              3,
-              20,
-              DEFAULT_MAX_UNCONFIRMED_SEC,
-            )
-          : DEFAULT_MAX_UNCONFIRMED_SEC,
+      maxUnconfirmedSec: clampNumber(
+        saved.maxUnconfirmedSec,
+        3,
+        20,
+        DEFAULT_MAX_UNCONFIRMED_SEC,
+      ),
+      displayLanguage: normalizeDisplayLanguage(saved.displayLanguage),
     };
   } catch (err) {
     console.error(err);
     appSettings = {
       asrLanguage: "Uyghur",
       maxUnconfirmedSec: DEFAULT_MAX_UNCONFIRMED_SEC,
+      displayLanguage: DEFAULT_DISPLAY_LANGUAGE,
     };
   }
 
@@ -981,10 +1057,29 @@ function renderAsrLanguages() {
   asrLanguageSelectEl.value = normalizeAsrLanguage(selected);
 }
 
+function renderDisplayLanguages() {
+  const selected =
+    displayLanguageSelectEl.value ||
+    pendingSettings.displayLanguage ||
+    DEFAULT_DISPLAY_LANGUAGE;
+
+  displayLanguageSelectEl.innerHTML = "";
+  for (const language of DISPLAY_LANGUAGE_OPTIONS) {
+    const option = document.createElement("option");
+    option.value = language.code;
+    option.textContent = language.label;
+    displayLanguageSelectEl.appendChild(option);
+  }
+
+  displayLanguageSelectEl.value = normalizeDisplayLanguage(selected);
+}
+
 function renderSettings(settings = pendingSettings) {
   renderAsrLanguages();
+  renderDisplayLanguages();
   const asrLanguage = normalizeAsrLanguage(settings.asrLanguage);
   asrLanguageSelectEl.value = asrLanguage;
+  displayLanguageSelectEl.value = normalizeDisplayLanguage(settings.displayLanguage);
   maxUnconfirmedRangeEl.value = String(settings.maxUnconfirmedSec);
   maxUnconfirmedValueEl.textContent = `${settings.maxUnconfirmedSec}s`;
 }
@@ -1018,6 +1113,7 @@ function closeAbout() {
 async function confirmSettings() {
   const previousModelKey = asrModelKey(appSettings);
   const previousLanguage = normalizeAsrLanguage(appSettings.asrLanguage);
+  const previousDisplayLanguage = normalizeDisplayLanguage(appSettings.displayLanguage);
 
   appSettings = {
     asrLanguage: normalizeAsrLanguage(pendingSettings.asrLanguage),
@@ -1027,12 +1123,20 @@ async function confirmSettings() {
       20,
       DEFAULT_MAX_UNCONFIRMED_SEC,
     ),
+    displayLanguage: normalizeDisplayLanguage(pendingSettings.displayLanguage),
   };
   pendingSettings = { ...appSettings };
+  const displayLanguageChanged =
+    previousDisplayLanguage !== normalizeDisplayLanguage(appSettings.displayLanguage);
+
+  if (displayLanguageChanged) {
+    setActiveLocale(appSettings.displayLanguage);
+  }
+
   saveSettings();
-  renderSettings(appSettings);
+  applyLocale();
   closeSettings();
-  setStatus("تەڭشەك ساقلاندى");
+  setStatus("settings.saved");
   renderText();
   renderResultPane(getActiveProject(), { preserveScroll: true });
 
@@ -1047,7 +1151,7 @@ async function confirmSettings() {
   ) {
     try {
       if (modelChanged) {
-        setStatus("مودىل ئالماشتۇرۇلۇۋاتىدۇ...");
+        setStatus("settings.switchingModel");
         setServerIndicator("working");
         resetAsrWebSocket();
         await ensureServerProcess(true);
@@ -1301,21 +1405,37 @@ function currentAsrBatchConfirmedFraction() {
   return asrProjectConfirmedFraction(project);
 }
 
+function microphoneProjectTitlePrefixes() {
+  return Array.from(
+    new Set(
+      Object.values(LOCALES)
+        .map((locale) => localeTextMap(locale)["projects.microphoneTitle"])
+        .filter(Boolean)
+        .concat("مىكروفون تونۇشى"),
+    ),
+  );
+}
+
 function nextMicrophoneProjectTitle() {
   let highestNumber = 0;
   let legacyUntitledCount = 0;
+  const prefixes = microphoneProjectTitlePrefixes();
 
   for (const project of projects) {
+    const title = String(project.title || "");
     if (
       project.sourceType !== "microphone" &&
       project.sourceName !== "microphone" &&
-      !String(project.title || "").startsWith(MICROPHONE_PROJECT_TITLE)
+      !prefixes.some((prefix) => title.startsWith(prefix))
     ) {
       continue;
     }
 
-    const suffix = String(project.title || "")
-      .slice(MICROPHONE_PROJECT_TITLE.length)
+    const prefix =
+      prefixes.find((item) => title.startsWith(item)) ||
+      t("projects.microphoneTitle");
+    const suffix = title
+      .slice(prefix.length)
       .trim();
 
     if (!suffix) {
@@ -1332,7 +1452,7 @@ function nextMicrophoneProjectTitle() {
 
   const next = Math.max(highestNumber, legacyUntitledCount) + 1;
 
-  return `${MICROPHONE_PROJECT_TITLE}${next}`;
+  return `${t("projects.microphoneTitle")}${next}`;
 }
 
 function createProject({
@@ -1633,7 +1753,9 @@ function updateAsrBatchProgress(label = "") {
   const percent = Math.round((doneUnits / total) * 100);
 
   asrBatchProgressLabelEl.textContent =
-    label || (asrBatchRunning ? "بىر تەرەپ قىلىنىۋاتىدۇ" : "ساقلاۋاتىدۇ");
+    label
+      ? (hasTranslationKey(label) ? t(label) : label)
+      : t(asrBatchRunning ? "projects.batchProcessing" : "projects.batchWaiting");
   asrBatchProgressValueEl.textContent = asrBatchRunning
     ? `${percent}%`
     : `0/${total}`;
@@ -1661,7 +1783,7 @@ function positionProjectMenu(menu, anchorButton) {
 }
 
 function renderProjects() {
-  sidePanelTitleEl.textContent = "تۈرلەر";
+  sidePanelTitleEl.textContent = t("projects.title");
   ensureActiveProjectForMode();
   projectListEl.innerHTML = "";
   updateClearButtonState();
@@ -1672,7 +1794,7 @@ function renderProjects() {
   if (visibleProjects.length === 0) {
     const empty = document.createElement("div");
     empty.className = "project-empty";
-    empty.textContent = "تېخى ساقلانغان تۈر يوق";
+    empty.textContent = t("projects.empty");
     projectListEl.appendChild(empty);
     return;
   }
@@ -1727,7 +1849,7 @@ function renderProjects() {
     menuButton.type = "button";
     menuButton.className = "project-menu-button";
     menuButton.textContent = "...";
-    menuButton.setAttribute("aria-label", "تۈر مەشغۇلاتى");
+    menuButton.setAttribute("aria-label", t("projects.operations"));
     menuButton.addEventListener("click", (event) => {
       event.stopPropagation();
       openProjectMenuId =
@@ -1746,20 +1868,20 @@ function renderProjects() {
       const openLocationButton = document.createElement("button");
       openLocationButton.type = "button";
       openLocationButton.className = "project-menu-item";
-      openLocationButton.textContent = "ئورنىنى ئېچىش";
+      openLocationButton.textContent = t("projects.openLocation");
       openLocationButton.addEventListener("click", () => openProjectLocation(project.id));
 
       const deleteButton = document.createElement("button");
       deleteButton.type = "button";
       deleteButton.className = "project-menu-item danger";
-      deleteButton.textContent = "ئۆچۈرۈش";
+      deleteButton.textContent = t("projects.delete");
       deleteButton.addEventListener("click", () => deleteProject(project.id));
 
       if (isAsrProjectResumable(project)) {
         const resumeButton = document.createElement("button");
         resumeButton.type = "button";
         resumeButton.className = "project-menu-item";
-        resumeButton.textContent = "داۋاملاشتۇرۇش";
+        resumeButton.textContent = t("projects.resume");
         resumeButton.disabled = asrBatchRunning || recording || fileStreaming || Boolean(currentRunMode);
         resumeButton.addEventListener("click", () => {
           void resumeAsrProject(project.id);
@@ -1770,7 +1892,7 @@ function renderProjects() {
       const exportButton = document.createElement("button");
       exportButton.type = "button";
       exportButton.className = "project-menu-item";
-      exportButton.textContent = "SRT چىقىرىش";
+      exportButton.textContent = t("projects.exportSrt");
       exportButton.addEventListener("click", () => exportProjectSrt(project.id));
       menu.appendChild(exportButton);
 
@@ -1785,37 +1907,37 @@ function renderProjects() {
 
 function projectStatusText(status) {
   if (status === "queued") {
-    return "ساقلاۋاتىدۇ";
+    return t("projects.status.queued");
   }
 
   if (status === "preparing") {
-    return "تەييارلىنىۋاتىدۇ";
+    return t("projects.status.preparing");
   }
 
   if (status === "running") {
-    return "يېزىۋاتىدۇ";
+    return t("projects.status.running");
   }
 
   if (status === "processing") {
-    return "بىر تەرەپ قىلىۋاتىدۇ";
+    return t("projects.status.processing");
   }
 
   if (status === "cancelled") {
-    return "توختىتىلدى";
+    return t("projects.status.cancelled");
   }
 
   if (status === "error") {
-    return "خاتالىق";
+    return t("projects.status.error");
   }
 
-  return "تاماملاندى";
+  return t("projects.status.done");
 }
 
 function renderActiveProject() {
   const project = getActiveProject();
 
   if (!project) {
-    activeProjectTitleEl.textContent = "يېڭى تونۇش";
+    activeProjectTitleEl.textContent = t("projects.newTranscript");
     confirmedText = "";
     unconfirmedText = "";
     renderText();
@@ -1855,7 +1977,7 @@ function renderResultPane(project, options = {}) {
     (resultViewMode === "whole" ? "whole-mode" : "timeline-list");
 
   if (resultViewMode === "whole") {
-    resultPaneTitleEl.textContent = "پۈتۈن تېكىست";
+    resultPaneTitleEl.textContent = t("timeline.wholeTitle");
     renderWholeTranscript(project);
     if (options.preserveScroll) {
       timelineEl.scrollTop = previousScrollTop;
@@ -1863,7 +1985,7 @@ function renderResultPane(project, options = {}) {
     return;
   }
 
-  resultPaneTitleEl.textContent = "ۋاقىت سىزىقى";
+  resultPaneTitleEl.textContent = t("timeline.title");
   renderTimelineSegments(project);
 
   if (options.preserveScroll) {
@@ -1878,7 +2000,7 @@ function renderWholeTranscript(project) {
   if (!text) {
     const empty = document.createElement("div");
     empty.className = "timeline-empty";
-    empty.textContent = "تېخى تېكىست يوق";
+    empty.textContent = t("timeline.emptyText");
     timelineEl.appendChild(empty);
     return;
   }
@@ -1897,7 +2019,7 @@ function renderTimelineSegments(project) {
   if (segments.length === 0) {
     const empty = document.createElement("div");
     empty.className = "timeline-empty";
-    empty.textContent = "تېخى بۆلەك يوق";
+    empty.textContent = t("timeline.emptySegments");
     timelineEl.appendChild(empty);
     return;
   }
@@ -1913,8 +2035,8 @@ function renderTimelineSegments(project) {
       "segment-play-button" +
       (playbackKey === activePlaybackKey ? " playing" : "");
     playButton.disabled = !project.mediaId && !project.mediaPath;
-    playButton.setAttribute("aria-label", "قويۇش");
-    playButton.title = "قويۇش";
+    playButton.setAttribute("aria-label", t("media.play"));
+    playButton.title = t("media.play");
     playButton.addEventListener("click", () => playSegment(project.id, segment));
 
     const time = document.createElement("div");
@@ -1975,7 +2097,7 @@ function appendProjectSegment(segment) {
   renderProjects();
 
   if (asrBatchRunning && project.id === currentProjectId) {
-    updateAsrBatchProgress("ئاۋاز تونۇۋاتىدۇ");
+    updateAsrBatchProgress("projects.batchRecognizing");
   }
 }
 
@@ -2063,8 +2185,8 @@ function failActiveRun(statusText, indicatorState) {
   void closeAudioResources();
   setBusyState(false);
   setStatus(
-    wasFileRun && statusText === STATUS_TEXT["model error"]
-      ? "ھۆججەت تونۇش خاتالىقى"
+    wasFileRun && statusValueMatchesKey(statusText, "status.modelError")
+      ? "file.recognitionError"
       : statusText,
   );
   setServerIndicator(indicatorState);
@@ -2319,12 +2441,12 @@ function connectWebSocket() {
 
   ws.onclose = () => {
     if (recording || fileStreaming || currentRunMode) {
-      failActiveRun("مودىل بىلەن ئۇلىنىش ئۈزۈلدى", "offline");
+      failActiveRun("status.modelDisconnected", "offline");
     } else if (hasConnectedOnce) {
-      setStatus("مودىل توختىدى");
+      setStatus("status.modelStopped");
       setServerIndicator("offline");
     } else {
-      setStatus("مودىل قوزغىلىۋاتىدۇ...");
+      setStatus("status.modelStarting");
       setServerIndicator("working");
     }
 
@@ -2333,10 +2455,10 @@ function connectWebSocket() {
 
   ws.onerror = () => {
     if (hasConnectedOnce) {
-      setStatus("مودىل خاتالىقى");
+      setStatus("status.modelError");
       setServerIndicator("offline");
     } else {
-      setStatus("مودىل قوزغىلىۋاتىدۇ...");
+      setStatus("status.modelStarting");
       setServerIndicator("working");
     }
   };
@@ -2353,7 +2475,7 @@ function connectWebSocket() {
 
     if (msg.type === "status") {
       if (msg.text === "model error") {
-        failActiveRun(STATUS_TEXT[msg.text] || msg.text, "available");
+        failActiveRun(msg.text, "available");
         return;
       }
 
@@ -2374,22 +2496,22 @@ function connectWebSocket() {
 
       setStatus(
         msg.text === "recording" && currentRunMode === "file"
-          ? "ھۆججەت يۈكلىنىۋاتىدۇ..."
-          : STATUS_TEXT[msg.text] || msg.text,
+          ? "file.loading"
+          : msg.text,
       );
       setServerIndicatorFromStatus(msg.text);
 
       if (msg.text === "recording") {
         setProjectStatus(currentProjectId, "running");
         if (asrBatchRunning) {
-          updateAsrBatchProgress("ئاۋاز تونۇۋاتىدۇ");
+          updateAsrBatchProgress("projects.batchRecognizing");
         }
       }
 
       if (msg.text === "processing remaining audio") {
         setProjectStatus(currentProjectId, "processing");
         if (asrBatchRunning) {
-          updateAsrBatchProgress("نەتىجە تەكشۈرۈلۈۋاتىدۇ");
+          updateAsrBatchProgress("projects.batchReviewing");
         }
       }
 
@@ -2527,7 +2649,7 @@ async function ensureWebSocket() {
   const expectedMode = asrModelKey(appSettings);
 
   if (reportedMode && reportedMode !== expectedMode) {
-    setStatus("مودىل ئالماشتۇرۇلۇۋاتىدۇ...");
+    setStatus("settings.switchingModel");
     setServerIndicator("working");
     resetAsrWebSocket();
     await ensureServerProcess(true);
@@ -2644,7 +2766,7 @@ async function clearAllData() {
   renderProjects();
   renderActiveProject();
   setBusyState(false);
-  setStatus("بارلىق تۈرلەر ئۆچۈرۈلدى");
+  setStatus("projects.cleared");
   setServerIndicator(ws?.readyState === WebSocket.OPEN ? "available" : "offline");
 }
 
@@ -2680,7 +2802,7 @@ async function deleteProject(projectId) {
   saveProjects();
   renderProjects();
   renderActiveProject();
-  setStatus("تۈر ئۆچۈرۈلدى");
+  setStatus("projects.deleted");
   setServerIndicator(ws?.readyState === WebSocket.OPEN ? "available" : "offline");
 }
 
@@ -2694,7 +2816,7 @@ async function exportProjectSrt(projectId) {
   const content = buildSrt(project);
 
   if (!content) {
-    setStatus("چىقىرىدىغان تېكىست يوق");
+    setStatus("file.noExportText");
     openProjectMenuId = null;
     renderProjects();
     return;
@@ -2717,24 +2839,24 @@ async function exportProjectSrt(projectId) {
         projectId: project.id,
         projectTitle: project.title || project.sourceName || "project",
       });
-      setStatus("SRT ساقلاندى");
+      setStatus("file.srtSaved");
       return;
     }
   } catch (err) {
     console.error(err);
-    setStatus("SRT ساقلاش خاتالىقى");
+    setStatus("file.srtSaveError");
     return;
   }
 
   downloadTextFile("audio.srt", content, "application/x-subrip;charset=utf-8");
-  setStatus("SRT چىقىرىلدى");
+  setStatus("file.srtExported");
 }
 
 async function exportProjectMedia(projectId) {
   const project = getProject(projectId);
 
   if (!project?.mediaId || project.sourceType !== "microphone") {
-    setStatus("پەقەت خاتىرىلەنگەن ئاۋازنى چىقارغىلى بولىدۇ");
+    setStatus("file.onlyRecordedAudioExport");
     openProjectMenuId = null;
     renderProjects();
     return;
@@ -2747,7 +2869,7 @@ async function exportProjectMedia(projectId) {
     const mediaRecord = await getStoredMedia(project.mediaId);
 
     if (!mediaRecord?.blob) {
-      setStatus("ساقلانغان مېدىيا تېپىلمىدى");
+      setStatus("file.savedMediaMissing");
       return;
     }
 
@@ -2756,7 +2878,7 @@ async function exportProjectMedia(projectId) {
 
     if (!tauriInvoke) {
       downloadBlobFile(fileName, mediaRecord.blob);
-      setStatus("مېدىيا چىقىرىلدى");
+      setStatus("file.mediaExported");
       return;
     }
 
@@ -2764,10 +2886,10 @@ async function exportProjectMedia(projectId) {
       fileName,
       bytes: await blobToBytes(mediaRecord.blob),
     });
-    setStatus(savedPath ? "ئاۋاز ساقلاندى" : "ئاۋاز چىقىرىش ئەمەلدىن قالدۇرۇلدى");
+    setStatus(savedPath ? "file.audioSaved" : "file.audioExportCancelled");
   } catch (err) {
     console.error(err);
-    setStatus("مېدىيا چىقىرىش خاتالىقى");
+    setStatus("file.mediaExportError");
   }
 }
 
@@ -2779,7 +2901,7 @@ async function openProjectLocation(projectId) {
   renderProjects();
 
   if (!project || !tauriInvoke) {
-    setStatus("تۈر ئورنىنى ئاچقىلى بولمىدى");
+    setStatus("projects.locationUnavailable");
     return;
   }
 
@@ -2794,10 +2916,10 @@ async function openProjectLocation(projectId) {
     project.projectFolderPath = folderPath;
     project.updatedAt = Date.now();
     saveProjects();
-    setStatus("تۈر ئورنى ئېچىلدى");
+    setStatus("projects.locationOpened");
   } catch (err) {
     console.error(err);
-    setStatus("تۈر ئورنىنى ئېچىش خاتالىقى");
+    setStatus("projects.locationOpenError");
   }
 }
 
@@ -2938,7 +3060,7 @@ async function playSegment(projectId, segment) {
   }
 
   if (!project?.mediaId && !project?.mediaPath) {
-    setStatus("بۇ تۈردە ساقلانغان مېدىيا يوق");
+    setStatus("media.noStoredMedia");
     return;
   }
 
@@ -3009,7 +3131,7 @@ async function playSegment(projectId, segment) {
   } catch (err) {
     console.error(err);
     stopSegmentPlayback({ render: false });
-    setStatus("مېدىيا قويۇش خاتالىقى");
+    setStatus("media.playError");
     renderResultPane(project, { preserveScroll: true });
   }
 }
@@ -3148,7 +3270,7 @@ async function streamDecodedAudioBuffer(arrayBuffer, token, speed = FILE_STREAM_
       await saveProjectAudioWav(currentProject, wavBlob);
     }
 
-    setStatus("ھۆججەت يۈكلىنىۋاتىدۇ...");
+    setStatus("file.loading");
     return streamPcmChunks(pcm16k, token, speed);
   } finally {
     await decodeContext.close();
@@ -3261,7 +3383,7 @@ async function stopMicrophoneRecorder(shouldSave) {
           await saveProjectAudioWav(project, wavBlob);
         } catch (err) {
           console.error(err);
-          setStatus("ئۈن ساقلاش خاتالىقى");
+          setStatus("file.audioSaveError");
         }
       } else if (shouldSave && project && chunks.length > 0) {
         const mimeType = recorder.mimeType || chunks[0]?.type || "audio/webm";
@@ -3273,7 +3395,7 @@ async function stopMicrophoneRecorder(shouldSave) {
           await attachMediaToProject(project, blob, fileName, mimeType);
         } catch (err) {
           console.error(err);
-          setStatus("ئۈن ساقلاش خاتالىقى");
+          setStatus("file.audioSaveError");
         }
       }
 
@@ -3302,7 +3424,7 @@ async function streamNativeExtractedMediaFile(file, token) {
   }
 
   try {
-    setStatus("ۋىدېئو ئاۋازى تېز چىقىرىلىۋاتىدۇ...");
+    setStatus("file.fastExtracting");
     console.info("Media extractor:", await tauriInvoke("ffmpeg_sidecar_path"));
 
     const extracted = await tauriInvoke("extract_media_audio", {
@@ -3347,7 +3469,7 @@ async function streamNativeExtractedMediaFile(file, token) {
       await saveProjectAudioWav(currentProject, wavBlob);
     }
 
-    setStatus("ھۆججەت يۈكلىنىۋاتىدۇ...");
+    setStatus("file.loading");
     return streamPcmChunks(pcm16k, token, NATIVE_EXTRACTED_FILE_STREAM_SPEED);
   } catch (err) {
     if (!fileStreaming || token !== fileStreamToken) {
@@ -3367,7 +3489,7 @@ async function streamNativeExtractedMediaPath(mediaFile, token) {
   }
 
   try {
-    setStatus("ۋىدېئو ئاۋازى تېز چىقىرىلىۋاتىدۇ...");
+    setStatus("file.fastExtracting");
     tauriInvoke("ffmpeg_sidecar_path")
       .then((path) => console.info("Media extractor:", path))
       .catch((err) => console.info("Media extractor unavailable:", errorMessage(err)));
@@ -3390,7 +3512,7 @@ async function streamNativeExtractedMediaPath(mediaFile, token) {
 
     attachProjectAudioFile(currentProject, savedAudio);
 
-    setStatus("ھۆججەت يۈكلىنىۋاتىدۇ...");
+    setStatus("file.loading");
     return streamProjectAudioFile(savedAudio, token);
   } catch (err) {
     if (!fileStreaming || token !== fileStreamToken) {
@@ -3469,7 +3591,7 @@ async function streamMediaElementFile(file, token) {
       renderProjects();
     }
 
-    setStatus("ۋىدېئو ئاۋازى بىر تەرەپ قىلىنىۋاتىدۇ...");
+    setStatus("file.videoProcessing");
 
     const finished = await new Promise((resolve, reject) => {
       const cancelTimer = setInterval(() => {
@@ -3519,7 +3641,7 @@ async function startRecording() {
 
   currentRunMode = "microphone";
   setBusyState(true);
-  setStatus("مىكروفون تەكشۈرۈلۈۋاتىدۇ...");
+  setStatus("status.checkingMicrophone");
   setServerIndicator("working");
 
   try {
@@ -3583,7 +3705,7 @@ async function startRecording() {
   sourceNode.connect(processorNode);
   processorNode.connect(audioContext.destination);
 
-  setStatus("ئۈنگە ئېلىۋاتىدۇ...");
+  setStatus("status.recording");
   setServerIndicator("working");
 }
 
@@ -3714,7 +3836,7 @@ async function prepareAsrProjectAudio(project) {
   project.updatedAt = Date.now();
   saveProjects();
   renderProjects();
-  updateAsrBatchProgress("WAV تەييارلىنىۋاتىدۇ");
+  updateAsrBatchProgress("projects.batchPreparingWav");
 
   const sourcePath = project.asrBatch?.sourcePath || project.mediaPath || "";
 
@@ -3832,7 +3954,7 @@ async function transcribePreparedAsrProject(project) {
   const runDone = beginCurrentFileRun(project.id);
 
   try {
-    setStatus(resuming ? "داۋاملاشتۇرۇلۇۋاتىدۇ..." : "ھۆججەت يۈكلىنىۋاتىدۇ...");
+    setStatus(resuming ? "file.resuming" : "file.loading");
     setServerIndicator("working");
     const finished = await streamProjectAudioFile(
       audioFile,
@@ -3849,7 +3971,7 @@ async function transcribePreparedAsrProject(project) {
       ws.readyState === WebSocket.OPEN
     ) {
       ws.send(JSON.stringify({ type: "stop" }));
-      setStatus("ھۆججەت تاماملاندى. بىر تەرەپ قىلىنىۋاتىدۇ...");
+      setStatus("file.completedProcessing");
       setServerIndicator("working");
       setProjectStatus(project.id, "processing");
     }
@@ -3873,7 +3995,7 @@ async function transcribePreparedAsrProject(project) {
 
 async function runAsrBatchProjects(projectIds) {
   if (asrBatchRunning) {
-    setStatus("ASR ئىشلەۋاتىدۇ");
+    setStatus("status.asrBusy");
     return;
   }
 
@@ -3882,7 +4004,7 @@ async function runAsrBatchProjects(projectIds) {
     .filter(isAsrProjectResumable);
 
   if (batchProjects.length === 0) {
-    setStatus("داۋاملاشتۇرىدىغان تۈر يوق");
+    setStatus("projects.noResume");
     return;
   }
 
@@ -3892,7 +4014,7 @@ async function runAsrBatchProjects(projectIds) {
   asrBatchDone = 0;
   markQueuedAsrBatchProjects(batchProjects);
   setBusyState(true);
-  updateAsrBatchProgress("WAV تەييارلىنىۋاتىدۇ");
+  updateAsrBatchProgress("projects.batchPreparingWav");
 
   try {
     for (const project of batchProjects) {
@@ -3914,7 +4036,7 @@ async function runAsrBatchProjects(projectIds) {
       }
     }
 
-    updateAsrBatchProgress("ئاۋاز تونۇۋاتىدۇ");
+    updateAsrBatchProgress("projects.batchRecognizing");
 
     for (const project of batchProjects) {
       if (asrBatchStopRequested) {
@@ -3943,7 +4065,7 @@ async function runAsrBatchProjects(projectIds) {
         }
       }
 
-      updateAsrBatchProgress("ئاۋاز تونۇۋاتىدۇ");
+      updateAsrBatchProgress("projects.batchRecognizing");
     }
   } finally {
     const wasStopped = asrBatchStopRequested;
@@ -3962,10 +4084,10 @@ async function runAsrBatchProjects(projectIds) {
     renderActiveProject();
     setStatus(
       wasStopped
-        ? "ASR توختىتىلدى"
+        ? "status.asrStopped"
         : remaining > 0
-          ? "بەزى تۈرلەر تاماملانمىدى"
-          : "ھەممىسى تاماملاندى",
+          ? "projects.someIncomplete"
+          : "projects.allCompleted",
     );
     setServerIndicator(ws?.readyState === WebSocket.OPEN ? "available" : "offline");
   }
@@ -3987,7 +4109,7 @@ async function streamAudioFile() {
   const mediaFiles = selectedAsrMediaFiles();
 
   if (mediaFiles.length === 0) {
-    setStatus("ئاۋاز ياكى ۋىدېئو ھۆججىتى تاللاڭ");
+    setStatus("file.selectAudioVideo");
     return;
   }
 
@@ -3998,11 +4120,11 @@ async function streamAudioFile() {
   const projectsToRun = await queuedAsrProjectsFromMedia(mediaFiles);
 
   if (projectsToRun.length === 0) {
-    setStatus("قوللايدىغان ھۆججەت يوق");
+    setStatus("file.unsupported");
     return;
   }
 
-  setStatus(`${projectsToRun.length} تۈر قوشۇلدى`);
+  setStatus("file.addedCount", { count: projectsToRun.length });
   await runAsrBatchProjects(projectsToRun.map((project) => project.id));
 }
 
@@ -4013,7 +4135,7 @@ async function stopAsr() {
 
   if (!recording && !fileStreaming && !currentRunMode) {
     if (asrBatchRunning) {
-      setStatus("ASR توختىتىلىۋاتىدۇ");
+      setStatus("status.asrStopping");
     }
     return;
   }
@@ -4040,12 +4162,12 @@ async function stopAsr() {
     finishCurrentFileRun(projectId, "cancelled");
     currentProjectId = null;
     currentRunMode = null;
-    setStatus("ھۆججەت توختىتىلدى");
+    setStatus("file.stopped");
     setBusyState(false);
     setServerIndicator(ws?.readyState === WebSocket.OPEN ? "available" : "offline");
   } else {
     setProjectStatus(currentProjectId, "processing");
-    setStatus("توختىدى. قالغان ئاۋاز بىر تەرەپ قىلىنىۋاتىدۇ...");
+    setStatus("status.stoppedProcessingRemaining");
     setServerIndicator("working");
   }
 }
@@ -4059,6 +4181,9 @@ window.addEventListener("beforeunload", () => {
 });
 
 async function bootApp() {
+  loadSettings();
+  setActiveLocale(appSettings.displayLanguage);
+
   try {
     await installProtectedUi();
   } catch (err) {
@@ -4066,10 +4191,7 @@ async function bootApp() {
   }
 
   loadProjects();
-  loadSettings();
-  renderSettings();
-  renderProjects();
-  renderActiveProject();
+  applyLocale();
   installDomDropZone(filePickerEl, "asr");
   void installNativeDragDrop();
 
@@ -4117,6 +4239,10 @@ async function bootApp() {
   });
   asrLanguageSelectEl.addEventListener("change", () => {
     pendingSettings.asrLanguage = normalizeAsrLanguage(asrLanguageSelectEl.value);
+    renderSettings();
+  });
+  displayLanguageSelectEl.addEventListener("change", () => {
+    pendingSettings.displayLanguage = normalizeDisplayLanguage(displayLanguageSelectEl.value);
     renderSettings();
   });
   maxUnconfirmedRangeEl.addEventListener("input", () => {

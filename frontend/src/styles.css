@@ -82,6 +82,20 @@ body {
   text-align: right;
 }
 
+b,
+strong {
+  font-weight: 400;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 400;
+}
+
 button,
 input,
 textarea,
@@ -153,7 +167,7 @@ select:disabled {
   background: var(--panel-bg);
   font-family: "sf-arabic-regular", system-ui, sans-serif;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 400;
   line-height: 1.35;
   direction: rtl;
   text-align: right;
@@ -161,7 +175,7 @@ select:disabled {
 
 .app-license-footer strong {
   color: #d9a300;
-  font-weight: 750;
+  font-weight: 400;
 }
 
 .app-license-footer bdi {
@@ -222,7 +236,7 @@ select:disabled {
   padding: 0;
   background: transparent;
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 400;
 }
 
 .clear-projects-button {
@@ -261,13 +275,14 @@ select:disabled {
   gap: 10px;
   color: var(--text-muted);
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 400;
 }
 
 .asr-batch-progress-meta strong {
   direction: ltr;
   color: var(--primary);
   font-family: system-ui, sans-serif;
+  font-weight: 400;
 }
 
 .asr-batch-progress-track {
@@ -405,7 +420,7 @@ select:disabled {
   background: transparent;
   direction: ltr;
   font-size: 17px;
-  font-weight: 900;
+  font-weight: 400;
   line-height: 1;
 }
 
@@ -438,7 +453,7 @@ select:disabled {
   background: transparent;
   text-align: right;
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 400;
 }
 
 .project-menu-item:hover {
@@ -460,7 +475,7 @@ select:disabled {
   white-space: nowrap;
   text-overflow: ellipsis;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .project-meta {
@@ -475,7 +490,7 @@ select:disabled {
 
 .project-language {
   unicode-bidi: isolate;
-  font-weight: 750;
+  font-weight: 400;
 }
 
 .workbench {
@@ -524,7 +539,7 @@ h1 {
   margin: 0;
   font-size: clamp(28px, 3.1vw, 44px);
   line-height: 1.05;
-  font-weight: 850;
+  font-weight: 400;
   letter-spacing: 0;
 }
 
@@ -537,7 +552,7 @@ h1 {
   direction: ltr;
   font-family: "sf-arabic-regular", system-ui, sans-serif;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 400;
   line-height: 1;
 }
 
@@ -633,7 +648,7 @@ h1 {
   color: var(--text-muted);
   direction: ltr;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 400;
   text-align: right;
   text-overflow: ellipsis;
   unicode-bidi: plaintext;
@@ -678,7 +693,7 @@ h1 {
   color: var(--text-soft);
   direction: ltr;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 400;
   white-space: nowrap;
 }
 
@@ -727,7 +742,7 @@ h1 {
   padding: 0 18px;
   border-radius: 8px;
   font-size: 15px;
-  font-weight: 750;
+  font-weight: 400;
   white-space: nowrap;
 }
 
@@ -744,6 +759,7 @@ h1 {
 .file-button {
   color: var(--primary-text);
   background: var(--primary);
+  margin-inline-start: auto;
 }
 
 .file-picker {
@@ -764,7 +780,7 @@ h1 {
 
 .file-picker-caption {
   flex: 0 0 auto;
-  font-weight: 750;
+  font-weight: 400;
   white-space: nowrap;
 }
 
@@ -796,7 +812,7 @@ h1 {
   align-items: center;
   color: var(--text);
   background: var(--panel-soft-bg);
-  font-weight: 750;
+  font-weight: 400;
   white-space: nowrap;
 }
 
@@ -808,7 +824,7 @@ h1 {
   text-align: start;
   font-family: system-ui, sans-serif;
   font-size: 14px;
-  font-weight: 650;
+  font-weight: 400;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -896,7 +912,7 @@ h1 {
   color: var(--text-muted);
   background: transparent;
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 400;
 }
 
 .view-switch button.active {
@@ -908,7 +924,7 @@ h1 {
   margin-right: auto;
   color: var(--text-subtle);
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 400;
   unicode-bidi: isolate;
 }
 
@@ -990,7 +1006,7 @@ h1 {
   direction: ltr;
   color: var(--primary);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 400;
   text-align: left;
   align-self: center;
 }
@@ -1111,14 +1127,14 @@ h1 {
   color: var(--text);
   font-family: system-ui, sans-serif;
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .about-brand a {
   color: var(--primary);
   font-family: system-ui, sans-serif;
   font-size: 15px;
-  font-weight: 750;
+  font-weight: 400;
   text-decoration: none;
 }
 
@@ -1132,7 +1148,7 @@ h1 {
   padding: 10px 0;
   color: var(--text);
   font-size: 14px;
-  font-weight: 750;
+  font-weight: 400;
 }
 
 .setting-field span {
@@ -1147,6 +1163,7 @@ h1 {
   direction: ltr;
   font-family: system-ui, sans-serif;
   font-size: 13px;
+  font-weight: 400;
 }
 
 .setting-field select {
@@ -1236,7 +1253,7 @@ h1 {
   color: var(--primary-text);
   background: var(--primary);
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .media-playback-element {
@@ -1434,6 +1451,7 @@ h1 {
 
   .file-button {
     flex: 1 1 180px;
+    margin-inline-start: 0;
   }
 
   .primary-button,

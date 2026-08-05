@@ -60,7 +60,6 @@ pub fn run() {
             extract_media_audio,
             extract_media_audio_from_path,
             read_media_file,
-            secure_texts,
             secure_image,
             ffmpeg_sidecar_path,
             allow_media_file_path

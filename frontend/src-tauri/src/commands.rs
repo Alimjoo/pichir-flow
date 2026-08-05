@@ -5,41 +5,11 @@ struct SecureImageResponse {
     bytes: Vec<u8>,
 }
 
-#[derive(Serialize)]
-struct SecureTextResponse {
-    key: &'static str,
-    value: &'static str,
-}
-
-struct SecureTextEntry {
-    key: &'static str,
-    value: &'static str,
-}
-
 struct SecureImageAsset {
     key: &'static str,
     mime_type: &'static str,
     bytes: &'static [u8],
 }
-
-const SECURE_TEXTS: &[SecureTextEntry] = &[
-    SecureTextEntry {
-        key: "aboutButton",
-        value: "ھەققىدە",
-    },
-    SecureTextEntry {
-        key: "aboutTitle",
-        value: "ھەققىدە",
-    },
-    SecureTextEntry {
-        key: "authorName",
-        value: "Piyazon",
-    },
-    SecureTextEntry {
-        key: "footerText",
-        value: "PichirFlow Non-Commercial License 1.0",
-    },
-];
 
 const SECURE_IMAGE_ASSETS: &[SecureImageAsset] = &[
     SecureImageAsset {
@@ -67,17 +37,6 @@ const SECURE_IMAGE_ASSETS: &[SecureImageAsset] = &[
         )),
     },
 ];
-
-#[tauri::command]
-fn secure_texts() -> Result<Vec<SecureTextResponse>, String> {
-    Ok(SECURE_TEXTS
-        .iter()
-        .map(|entry| SecureTextResponse {
-            key: entry.key,
-            value: entry.value,
-        })
-        .collect())
-}
 
 #[tauri::command]
 fn secure_image(key: String) -> Result<SecureImageResponse, String> {
