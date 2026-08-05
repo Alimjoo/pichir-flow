@@ -1,6 +1,6 @@
 [package]
 name = "ugasr"
-version = "0.1.0"
+version = "1.0.0"
 description = "Uyghur streaming ASR "
 authors = ["you"]
 license-file = "../../LICENSE"
