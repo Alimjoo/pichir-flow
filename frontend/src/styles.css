@@ -149,11 +149,11 @@ select:disabled {
   justify-content: flex-start;
   gap: 4px 18px;
   flex-wrap: wrap;
-  color: #db2d07;
+  color: var(--text-muted);
   background: var(--panel-bg);
   font-family: "sf-arabic-regular", system-ui, sans-serif;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.35;
   direction: rtl;
   text-align: right;
@@ -1082,130 +1082,48 @@ h1 {
   line-height: 1.2;
 }
 
-.about-author {
-  padding: 10px 0 14px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  color: var(--text-muted);
-  font-size: 15px;
-  font-weight: 750;
-}
-
-.about-author strong {
-  color: var(--text);
-  font-family: system-ui, sans-serif;
-  font-weight: 800;
-}
-
-.about-contact-grid {
+.about-brand {
+  padding: 12px 0 8px;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  justify-items: center;
   gap: 12px;
-}
-
-.about-contact-card {
-  min-width: 0;
-  margin: 0;
-  padding: 10px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  display: grid;
-  gap: 8px;
-  background: var(--panel-soft-bg);
-}
-
-.about-contact-card img {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  border-radius: 6px;
-  display: block;
-  background: #fff;
-  object-fit: contain;
-}
-
-.about-contact-card figcaption {
-  color: var(--text);
-  font-size: 14px;
-  font-weight: 800;
-  line-height: 1.2;
   text-align: center;
 }
 
-.about-warning {
-  margin: 14px 0 0;
-  padding: 12px;
-  border: 1px solid rgba(191, 32, 32, 0.35);
-  border-radius: 8px;
-  color: var(--danger);
-  background: rgba(191, 32, 32, 0.08);
-  font-size: 15px;
-  font-weight: 750;
-  line-height: 1.7;
-}
-
-.license-backdrop {
-  z-index: 140;
-  background: rgba(15, 23, 42, 0.46);
-}
-
-.license-dialog {
-  width: min(760px, calc(100vw - 40px));
-  max-height: calc(100dvh - 40px);
-  padding: 16px;
+.about-logo-circle {
+  width: 132px;
+  aspect-ratio: 1 / 1;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 50%;
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
-  gap: 12px;
-  background: var(--panel-bg);
-  box-shadow: var(--menu-shadow);
+  place-items: center;
+  background: var(--panel-soft-bg);
 }
 
-.license-dialog-header h2 {
-  margin: 0;
+.about-logo-circle img {
+  width: 86px;
+  height: 86px;
+  display: block;
+  object-fit: contain;
+}
+
+.about-brand strong {
   color: var(--text);
   font-family: system-ui, sans-serif;
   font-size: 18px;
-  line-height: 1.25;
-  text-align: start;
+  font-weight: 800;
 }
 
-.license-intro {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 14px;
+.about-brand a {
+  color: var(--primary);
+  font-family: system-ui, sans-serif;
+  font-size: 15px;
   font-weight: 750;
-  line-height: 1.6;
+  text-decoration: none;
 }
 
-.license-text {
-  min-height: 280px;
-  margin: 0;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text);
-  background: var(--panel-soft-bg);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  font-size: 13px;
-  line-height: 1.65;
-  overflow: auto;
-  text-align: start;
-  white-space: pre-wrap;
-  unicode-bidi: plaintext;
-}
-
-.license-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  direction: ltr;
-}
-
-.license-actions button {
-  min-width: 120px;
+.about-brand a:hover {
+  text-decoration: underline;
 }
 
 .setting-field {
@@ -1411,10 +1329,6 @@ h1 {
 
   .about-dialog {
     padding: 14px;
-  }
-
-  .about-contact-grid {
-    grid-template-columns: 1fr;
   }
 
   .active-project-title {

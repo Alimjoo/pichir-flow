@@ -22,15 +22,6 @@ struct SecureImageAsset {
     bytes: &'static [u8],
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct LicenseAgreementState {
-    accepted: bool,
-    text: String,
-}
-
-const EMBEDDED_LICENSE_TEXT: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../LICENSE"));
-
 const SECURE_TEXTS: &[SecureTextEntry] = &[
     SecureTextEntry {
         key: "aboutButton",
@@ -41,28 +32,12 @@ const SECURE_TEXTS: &[SecureTextEntry] = &[
         value: "ھەققىدە",
     },
     SecureTextEntry {
-        key: "authorLabel",
-        value: "ئاپتور",
-    },
-    SecureTextEntry {
         key: "authorName",
         value: "Piyazon",
     },
     SecureTextEntry {
-        key: "douyinLabel",
-        value: "دوۋيىن",
-    },
-    SecureTextEntry {
-        key: "salonLabel",
-        value: "سالون",
-    },
-    SecureTextEntry {
-        key: "aboutWarning",
-        value: "ئاگاھلاندۇرۇش: بۇ ئەپ ھەقسىز. ئەگەر بۇ ئەپ ئۈچۈن پۇل تۆلىگەن ياكى باشقىلاردىن سېتىۋالغان بولسىڭىز، دوۋيىن ياكى سالون ئارقىلىق مەن بىلەن ئالاقىلىشىڭ، پۇلىڭىزنى قايتۇرۇۋېلىشىڭىزغا ياردەم قىلىمىز.",
-    },
-    SecureTextEntry {
         key: "footerText",
-        value: "ئاگاھلاندۇرۇش، بۇ ئەپ ھەسىز، قايتا سېتىشقا بولمايدۇ",
+        value: "PichirFlow Non-Commercial License 1.0",
     },
 ];
 
@@ -73,22 +48,6 @@ const SECURE_IMAGE_ASSETS: &[SecureImageAsset] = &[
         bytes: include_bytes!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/../src/assets/penguin.svg"
-        )),
-    },
-    SecureImageAsset {
-        key: "douyin",
-        mime_type: "image/jpeg",
-        bytes: include_bytes!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../src/assets/douyin.jpg"
-        )),
-    },
-    SecureImageAsset {
-        key: "salon",
-        mime_type: "image/jpeg",
-        bytes: include_bytes!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../src/assets/salon.jpg"
         )),
     },
     SecureImageAsset {
@@ -108,75 +67,6 @@ const SECURE_IMAGE_ASSETS: &[SecureImageAsset] = &[
         )),
     },
 ];
-
-fn bundled_license_text(app: &AppHandle) -> String {
-    let text = app
-        .path()
-        .resource_dir()
-        .ok()
-        .map(|resource_dir| resource_dir.join("LICENSE"))
-        .and_then(|path| fs::read_to_string(path).ok())
-        .unwrap_or_else(|| EMBEDDED_LICENSE_TEXT.to_string());
-
-    text.replace("ugASR", "PichirFlow")
-}
-
-fn license_acceptance_path(app: &AppHandle) -> Result<PathBuf, String> {
-    Ok(app
-        .path()
-        .app_data_dir()
-        .map_err(|err| format!("failed to resolve app data directory: {err}"))?
-        .join("pichirflow-license-acceptance.json"))
-}
-
-#[tauri::command]
-fn license_agreement_state(app: AppHandle) -> Result<LicenseAgreementState, String> {
-    let license_text = bundled_license_text(&app);
-    let accepted = match fs::read_to_string(license_acceptance_path(&app)?) {
-        Ok(contents) => serde_json::from_str::<serde_json::Value>(&contents)
-            .ok()
-            .and_then(|value| {
-                value
-                    .get("accepted")
-                    .and_then(|accepted| accepted.as_bool())
-            })
-            .unwrap_or(false),
-        Err(err) if err.kind() == io::ErrorKind::NotFound => false,
-        Err(err) => {
-            return Err(format!("failed to read license acceptance: {err}"));
-        }
-    };
-
-    Ok(LicenseAgreementState {
-        accepted,
-        text: license_text,
-    })
-}
-
-#[tauri::command]
-fn accept_license_agreement(app: AppHandle) -> Result<(), String> {
-    let path = license_acceptance_path(&app)?;
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|err| format!("failed to create app data directory: {err}"))?;
-    }
-
-    let payload = serde_json::json!({
-        "accepted": true,
-        "acceptedAt": SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|duration| duration.as_secs())
-            .unwrap_or(0)
-    });
-
-    fs::write(&path, serde_json::to_vec_pretty(&payload).map_err(|err| err.to_string())?)
-        .map_err(|err| format!("failed to save license acceptance: {err}"))
-}
-
-#[tauri::command]
-fn quit_app(app: AppHandle) {
-    app.exit(0);
-}
 
 #[tauri::command]
 fn secure_texts() -> Result<Vec<SecureTextResponse>, String> {

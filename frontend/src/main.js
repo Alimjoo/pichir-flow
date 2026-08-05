@@ -111,10 +111,6 @@ const timelineViewBtn = document.getElementById("timelineViewBtn");
 const aboutBtn = document.getElementById("aboutBtn");
 const aboutModalEl = document.getElementById("aboutModal");
 const aboutCloseBtn = document.getElementById("aboutCloseBtn");
-const licenseModalEl = document.getElementById("licenseModal");
-const licenseTextEl = document.getElementById("licenseText");
-const licenseAgreeBtn = document.getElementById("licenseAgreeBtn");
-const licenseDeclineBtn = document.getElementById("licenseDeclineBtn");
 const settingsBtn = document.getElementById("settingsBtn");
 const settingsModalEl = document.getElementById("settingsModal");
 const settingsCloseBtn = document.getElementById("settingsCloseBtn");
@@ -177,12 +173,6 @@ async function installSecureTexts() {
     }
   }
 
-  for (const el of document.querySelectorAll("[data-secure-alt]")) {
-    const value = textByKey.get(el.dataset.secureAlt);
-    if (value !== undefined) {
-      el.setAttribute("alt", value);
-    }
-  }
 }
 
 async function verifySecureImage(imageEl) {
@@ -229,55 +219,6 @@ function installSecureImages() {
 async function installProtectedUi() {
   await installSecureTexts();
   installSecureImages();
-}
-
-async function ensureLicenseAgreement() {
-  const state = await invokeProtectedCommand("license_agreement_state");
-
-  if (state?.accepted) {
-    return true;
-  }
-
-  licenseTextEl.textContent = String(state?.text || "");
-  licenseModalEl.hidden = false;
-
-  return await new Promise((resolve) => {
-    let settled = false;
-
-    const finish = (accepted) => {
-      if (settled) {
-        return;
-      }
-
-      settled = true;
-      licenseAgreeBtn.disabled = true;
-      licenseDeclineBtn.disabled = true;
-      resolve(accepted);
-    };
-
-    licenseAgreeBtn.onclick = async () => {
-      try {
-        licenseAgreeBtn.disabled = true;
-        await invokeProtectedCommand("accept_license_agreement");
-        licenseModalEl.hidden = true;
-        finish(true);
-      } catch (err) {
-        console.error(err);
-        licenseAgreeBtn.disabled = false;
-        setStatus(`ئىجازەتنامە خاتالىقى: ${errorMessage(err)}`);
-      }
-    };
-
-    licenseDeclineBtn.onclick = async () => {
-      finish(false);
-      try {
-        await invokeProtectedCommand("quit_app");
-      } catch (err) {
-        console.error(err);
-        window.close();
-      }
-    };
-  });
 }
 
 function renderText() {
@@ -4120,10 +4061,6 @@ window.addEventListener("beforeunload", () => {
 async function bootApp() {
   try {
     await installProtectedUi();
-    const licenseAccepted = await ensureLicenseAgreement();
-    if (!licenseAccepted) {
-      return;
-    }
   } catch (err) {
     console.error(err);
   }
