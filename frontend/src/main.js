@@ -144,10 +144,6 @@ async function invokeProtectedCommand(command, args = {}) {
   return await tauriInvoke(command, args);
 }
 
-async function verifyAppIntegrity() {
-  await invokeProtectedCommand("verify_frontend_integrity");
-}
-
 function secureTextMap(entries) {
   return new Map(
     entries
@@ -231,7 +227,6 @@ function installSecureImages() {
 }
 
 async function installProtectedUi() {
-  await verifyAppIntegrity();
   await installSecureTexts();
   installSecureImages();
 }
@@ -263,9 +258,7 @@ async function ensureLicenseAgreement() {
     licenseAgreeBtn.onclick = async () => {
       try {
         licenseAgreeBtn.disabled = true;
-        await invokeProtectedCommand("accept_license_agreement", {
-          sha256: String(state?.sha256 || ""),
-        });
+        await invokeProtectedCommand("accept_license_agreement");
         licenseModalEl.hidden = true;
         finish(true);
       } catch (err) {
@@ -285,34 +278,6 @@ async function ensureLicenseAgreement() {
       }
     };
   });
-}
-
-async function blockAppStartup(err) {
-  console.error(err);
-  let title = "App integrity check failed";
-  let message = "This app copy appears to have been modified. Reinstall the official release.";
-
-  try {
-    const textByKey = await loadSecureTextMap();
-    title = textByKey.get("integrityTitle") || title;
-    message = textByKey.get("integrityMessage") || message;
-  } catch (textErr) {
-    console.error(textErr);
-  }
-
-  document.body.textContent = "";
-  const blocker = document.createElement("main");
-  blocker.className = "integrity-blocker";
-  blocker.dir = "rtl";
-  const panel = document.createElement("section");
-  const heading = document.createElement("h1");
-  const description = document.createElement("p");
-
-  heading.textContent = title;
-  description.textContent = message;
-  panel.append(heading, description);
-  blocker.appendChild(panel);
-  document.body.appendChild(blocker);
 }
 
 function renderText() {
@@ -4160,8 +4125,7 @@ async function bootApp() {
       return;
     }
   } catch (err) {
-    await blockAppStartup(err);
-    return;
+    console.error(err);
   }
 
   loadProjects();

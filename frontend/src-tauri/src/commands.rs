@@ -1,5 +1,3 @@
-use sha2::{Digest, Sha256};
-
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct SecureImageResponse {
@@ -21,13 +19,6 @@ struct SecureTextEntry {
 struct SecureImageAsset {
     key: &'static str,
     mime_type: &'static str,
-    sha256: &'static str,
-    bytes: &'static [u8],
-}
-
-struct FrontendIntegrityFile {
-    path: &'static str,
-    sha256: &'static str,
     bytes: &'static [u8],
 }
 
@@ -35,13 +26,9 @@ struct FrontendIntegrityFile {
 #[serde(rename_all = "camelCase")]
 struct LicenseAgreementState {
     accepted: bool,
-    sha256: String,
     text: String,
 }
 
-include!("generated_frontend_integrity.rs");
-
-const SECURE_TEXT_HASH: &str = "6dc4991b6abaee757b0f047ddd87975c204355bea03bea49ed6524b9848fa698";
 const EMBEDDED_LICENSE_TEXT: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../LICENSE"));
 
 const SECURE_TEXTS: &[SecureTextEntry] = &[
@@ -77,21 +64,12 @@ const SECURE_TEXTS: &[SecureTextEntry] = &[
         key: "footerText",
         value: "ئاگاھلاندۇرۇش، بۇ ئەپ ھەسىز، قايتا سېتىشقا بولمايدۇ",
     },
-    SecureTextEntry {
-        key: "integrityTitle",
-        value: "ئەپ بىخەتەرلىك تەكشۈرۈشىدىن ئۆتمىدى",
-    },
-    SecureTextEntry {
-        key: "integrityMessage",
-        value: "بۇ نەشرنىڭ ھۆججەتلىرى ئۆزگەرتىلگەن بولۇشى مۇمكىن. رەسمىي Piyazon نەشرىنى قايتا قاچىلاڭ.",
-    },
 ];
 
 const SECURE_IMAGE_ASSETS: &[SecureImageAsset] = &[
     SecureImageAsset {
         key: "penguin",
         mime_type: "image/svg+xml",
-        sha256: "3513f8a5b6a70aac4909d0546a2726856538bda0f093ae025035816a6c35fe28",
         bytes: include_bytes!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/../src/assets/penguin.svg"
@@ -100,7 +78,6 @@ const SECURE_IMAGE_ASSETS: &[SecureImageAsset] = &[
     SecureImageAsset {
         key: "douyin",
         mime_type: "image/jpeg",
-        sha256: "a8f2a0ac2582ecbc3b7494576cc1bb6cc2fadd6eb54f07f06f3d6382212301e2",
         bytes: include_bytes!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/../src/assets/douyin.jpg"
@@ -109,7 +86,6 @@ const SECURE_IMAGE_ASSETS: &[SecureImageAsset] = &[
     SecureImageAsset {
         key: "salon",
         mime_type: "image/jpeg",
-        sha256: "e689baf4d44780e6f69fd14c4e648d7cc41adcc1a91959316761015700f70192",
         bytes: include_bytes!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/../src/assets/salon.jpg"
@@ -118,7 +94,6 @@ const SECURE_IMAGE_ASSETS: &[SecureImageAsset] = &[
     SecureImageAsset {
         key: "javascript",
         mime_type: "image/svg+xml",
-        sha256: "8dac53799104214c30769aa44c25a16b3c8c86f7c6c6e46fb1996e63ab5d828e",
         bytes: include_bytes!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/../src/assets/javascript.svg"
@@ -127,66 +102,12 @@ const SECURE_IMAGE_ASSETS: &[SecureImageAsset] = &[
     SecureImageAsset {
         key: "tauri",
         mime_type: "image/svg+xml",
-        sha256: "e5d2738bbaa5543c4684001a558dc53165da9b636144827b28db1dcfacf81aa8",
         bytes: include_bytes!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/../src/assets/tauri.svg"
         )),
     },
 ];
-
-fn sha256_hex(bytes: &[u8]) -> String {
-    Sha256::digest(bytes)
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect()
-}
-
-fn sha256_hex_with_lf_line_endings(bytes: &[u8]) -> String {
-    let mut normalized = Vec::with_capacity(bytes.len());
-    let mut index = 0;
-
-    while index < bytes.len() {
-        if bytes[index] == b'\r' {
-            normalized.push(b'\n');
-            index += 1;
-
-            if bytes.get(index) == Some(&b'\n') {
-                index += 1;
-            }
-        } else {
-            normalized.push(bytes[index]);
-            index += 1;
-        }
-    }
-
-    sha256_hex(&normalized)
-}
-
-fn secure_image_sha256(asset: &SecureImageAsset) -> String {
-    if asset.mime_type == "image/svg+xml" {
-        sha256_hex_with_lf_line_endings(asset.bytes)
-    } else {
-        sha256_hex(asset.bytes)
-    }
-}
-
-fn secure_texts_hash() -> String {
-    let mut hasher = Sha256::new();
-
-    for entry in SECURE_TEXTS {
-        hasher.update(entry.key.as_bytes());
-        hasher.update([0]);
-        hasher.update(entry.value.as_bytes());
-        hasher.update([255]);
-    }
-
-    hasher
-        .finalize()
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect()
-}
 
 fn bundled_license_text(app: &AppHandle) -> String {
     let text = app
@@ -200,30 +121,24 @@ fn bundled_license_text(app: &AppHandle) -> String {
     text.replace("ugASR", "PichirFlow")
 }
 
-fn license_hash(text: &str) -> String {
-    sha256_hex(text.as_bytes())
-}
-
 fn license_acceptance_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(app
         .path()
         .app_data_dir()
         .map_err(|err| format!("failed to resolve app data directory: {err}"))?
-        .join("pivoicelab-license-acceptance.json"))
+        .join("pichirflow-license-acceptance.json"))
 }
 
 #[tauri::command]
 fn license_agreement_state(app: AppHandle) -> Result<LicenseAgreementState, String> {
     let license_text = bundled_license_text(&app);
-    let expected_sha = license_hash(&license_text);
     let accepted = match fs::read_to_string(license_acceptance_path(&app)?) {
         Ok(contents) => serde_json::from_str::<serde_json::Value>(&contents)
             .ok()
             .and_then(|value| {
                 value
-                    .get("sha256")
-                    .and_then(|sha| sha.as_str())
-                    .map(|sha| sha == expected_sha)
+                    .get("accepted")
+                    .and_then(|accepted| accepted.as_bool())
             })
             .unwrap_or(false),
         Err(err) if err.kind() == io::ErrorKind::NotFound => false,
@@ -234,20 +149,12 @@ fn license_agreement_state(app: AppHandle) -> Result<LicenseAgreementState, Stri
 
     Ok(LicenseAgreementState {
         accepted,
-        sha256: expected_sha,
         text: license_text,
     })
 }
 
 #[tauri::command]
-fn accept_license_agreement(app: AppHandle, sha256: String) -> Result<(), String> {
-    let license_text = bundled_license_text(&app);
-    let expected_sha = license_hash(&license_text);
-
-    if sha256 != expected_sha {
-        return Err("license SHA-256 mismatch".to_string());
-    }
-
+fn accept_license_agreement(app: AppHandle) -> Result<(), String> {
     let path = license_acceptance_path(&app)?;
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)
@@ -255,7 +162,7 @@ fn accept_license_agreement(app: AppHandle, sha256: String) -> Result<(), String
     }
 
     let payload = serde_json::json!({
-        "sha256": expected_sha,
+        "accepted": true,
         "acceptedAt": SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map(|duration| duration.as_secs())
@@ -273,12 +180,6 @@ fn quit_app(app: AppHandle) {
 
 #[tauri::command]
 fn secure_texts() -> Result<Vec<SecureTextResponse>, String> {
-    let actual_sha = secure_texts_hash();
-
-    if actual_sha != SECURE_TEXT_HASH {
-        return Err("secure text SHA-256 mismatch".to_string());
-    }
-
     Ok(SECURE_TEXTS
         .iter()
         .map(|entry| SecureTextResponse {
@@ -288,48 +189,6 @@ fn secure_texts() -> Result<Vec<SecureTextResponse>, String> {
         .collect())
 }
 
-fn frontend_integrity_candidate_paths(app: &AppHandle, relative_path: &str) -> Vec<PathBuf> {
-    let mut paths = Vec::new();
-
-    if let Ok(resource_dir) = app.path().resource_dir() {
-        paths.push(resource_dir.join(relative_path));
-        paths.push(resource_dir.join("dist").join(relative_path));
-        paths.push(resource_dir.join("frontend").join(relative_path));
-        paths.push(resource_dir.join("assets").join(relative_path));
-    }
-
-    paths
-}
-
-#[tauri::command]
-fn verify_frontend_integrity(app: AppHandle) -> Result<(), String> {
-    for file in FRONTEND_INTEGRITY_FILES {
-        let embedded_sha = sha256_hex(file.bytes);
-        if embedded_sha != file.sha256 {
-            return Err(format!(
-                "compiled frontend integrity hash mismatch: {}",
-                file.path
-            ));
-        }
-
-        for path in frontend_integrity_candidate_paths(&app, file.path) {
-            if !path.is_file() {
-                continue;
-            }
-
-            let bytes = fs::read(&path)
-                .map_err(|err| format!("failed to read {}: {}", path.display(), err))?;
-            let actual_sha = sha256_hex(&bytes);
-
-            if actual_sha != file.sha256 {
-                return Err(format!("frontend file was modified: {}", file.path));
-            }
-        }
-    }
-
-    Ok(())
-}
-
 #[tauri::command]
 fn secure_image(key: String) -> Result<SecureImageResponse, String> {
     let key = key.trim();
@@ -337,11 +196,6 @@ fn secure_image(key: String) -> Result<SecureImageResponse, String> {
         .iter()
         .find(|asset| asset.key == key)
         .ok_or_else(|| "unknown secure image".to_string())?;
-    let actual_sha = secure_image_sha256(asset);
-
-    if actual_sha != asset.sha256 {
-        return Err(format!("secure image SHA-256 mismatch: {key}"));
-    }
 
     Ok(SecureImageResponse {
         mime_type: asset.mime_type,

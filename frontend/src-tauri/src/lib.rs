@@ -65,7 +65,6 @@ pub fn run() {
             quit_app,
             secure_texts,
             secure_image,
-            verify_frontend_integrity,
             ffmpeg_sidecar_path,
             allow_media_file_path
         ])
