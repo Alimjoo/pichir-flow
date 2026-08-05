@@ -1,0 +1,307 @@
+name: Build release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BACKEND_REPOSITORY: Piyazon/backend
+  WHISPER_CPP_REF: 3e9b7d0fef3528ee2208da3cdb873a2c53d2ae2f
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS arm64
+            os: macos-14
+            build_vulkan: false
+          - name: macOS x64
+            os: macos-15-intel
+            build_vulkan: true
+          - name: Windows x64
+            os: windows-latest
+            build_vulkan: true
+
+    steps:
+      - name: Checkout frontend
+        uses: actions/checkout@v4
+
+      - name: Check backend checkout token
+        run: |
+          if [[ -z "${SERVER_REPO_TOKEN:-}" ]]; then
+            echo "::error::Missing SERVER_REPO_TOKEN. Add a fine-grained GitHub token with read access to ${BACKEND_REPOSITORY} as a frontend repo secret."
+            exit 1
+          fi
+        shell: bash
+        env:
+          SERVER_REPO_TOKEN: ${{ secrets.SERVER_REPO_TOKEN }}
+
+      - name: Checkout backend sources
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.BACKEND_REPOSITORY }}
+          path: backend-src
+          token: ${{ secrets.SERVER_REPO_TOKEN }}
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Install Rust
+        run: rustup toolchain install stable --profile minimal
+        shell: bash
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install Vulkan SDK
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install vulkan-sdk -y --no-progress
+          $vulkanSdk = Get-ChildItem "C:\VulkanSDK" -Directory | Sort-Object Name -Descending | Select-Object -First 1
+          if (-not $vulkanSdk) {
+            Write-Error "Vulkan SDK install path was not found"
+            exit 1
+          }
+          "VULKAN_SDK=$($vulkanSdk.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "$($vulkanSdk.FullName)\Bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Install macOS Vulkan SDK
+        if: matrix.build_vulkan == true && runner.os == 'macOS'
+        run: |
+          brew update
+          brew install vulkan-headers vulkan-loader molten-vk shaderc
+
+          headers_prefix="$(brew --prefix vulkan-headers)"
+          loader_prefix="$(brew --prefix vulkan-loader)"
+          moltenvk_prefix="$(brew --prefix molten-vk)"
+          shaderc_prefix="$(brew --prefix shaderc)"
+          glslc_path="${shaderc_prefix}/bin/glslc"
+
+          if [[ ! -x "$glslc_path" ]]; then
+            echo "::error::glslc was not found at $glslc_path"
+            exit 1
+          fi
+
+          {
+            echo "VULKAN_SDK=${loader_prefix}"
+            echo "VULKAN_HEADERS_PREFIX=${headers_prefix}"
+            echo "VULKAN_LOADER_PREFIX=${loader_prefix}"
+            echo "MOLTENVK_PREFIX=${moltenvk_prefix}"
+            echo "VULKAN_GLSLC_EXECUTABLE=${glslc_path}"
+            echo "CMAKE_PREFIX_PATH=${headers_prefix}:${loader_prefix}:${moltenvk_prefix}"
+          } >> "$GITHUB_ENV"
+        shell: bash
+
+      - name: Clone whisper.cpp
+        run: |
+          git clone --depth 1 https://github.com/ggml-org/whisper.cpp.git whisper.cpp
+          git -C whisper.cpp fetch --depth 1 origin "$WHISPER_CPP_REF"
+          git -C whisper.cpp checkout "$WHISPER_CPP_REF"
+        shell: bash
+
+      - name: Download model assets
+        run: bash .github/scripts/download-release-assets.sh src-tauri/server
+        shell: bash
+        env:
+          MODEL_DOWNLOAD_TOKEN: ${{ secrets.MODEL_DOWNLOAD_TOKEN }}
+          NON_UYGHUR_MODEL_URL: ${{ secrets.NON_UYGHUR_MODEL_URL }}
+          TTS_MODEL_URL: ${{ secrets.TTS_MODEL_URL }}
+          TTS_HELPER_MODEL_URL: ${{ secrets.TTS_HELPER_MODEL_URL }}
+          UGASR_HELPER_MODEL_URL: ${{ secrets.UGASR_HELPER_MODEL_URL }}
+          UGASR_UYGHUR_MODEL_URL: ${{ secrets.UGASR_UYGHUR_MODEL_URL }}
+          UGASR_UYGHUR_FAST_MODEL_URL: ${{ secrets.UGASR_UYGHUR_FAST_MODEL_URL }}
+          UGASR_UYGHUR_ULTRA_MODEL_URL: ${{ secrets.UGASR_UYGHUR_ULTRA_MODEL_URL }}
+
+      - name: Build native ASR and TTS sidecars
+        run: |
+          cmake -S backend-src -B backend-src/build -DCMAKE_BUILD_TYPE=Release -DWHISPER_CPP_DIR="$GITHUB_WORKSPACE/whisper.cpp" -DBUILD_SHARED_LIBS=OFF
+          cmake --build backend-src/build --config Release --target ASR TTS --parallel 2
+        shell: bash
+
+      - name: Build Vulkan ASR sidecar
+        if: matrix.build_vulkan == true
+        run: |
+          vulkan_args=(
+            -DCMAKE_BUILD_TYPE=Release
+            -DWHISPER_CPP_DIR="$GITHUB_WORKSPACE/whisper.cpp"
+            -DBUILD_SHARED_LIBS=OFF
+            -DGGML_VULKAN=ON
+          )
+
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
+            vulkan_args+=(-DGGML_METAL=OFF)
+            vulkan_args+=(-DVulkan_GLSLC_EXECUTABLE="${VULKAN_GLSLC_EXECUTABLE}")
+          fi
+
+          cmake -S backend-src -B backend-src/build-vulkan "${vulkan_args[@]}"
+          cmake --build backend-src/build-vulkan --config Release --target ASR --parallel 2
+        shell: bash
+
+      - name: Copy native sidecars
+        run: |
+          set -euo pipefail
+          mkdir -p src-tauri/server
+
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            asr_name="ASR.exe"
+            tts_name="TTS.exe"
+          else
+            asr_name="ASR"
+            tts_name="TTS"
+          fi
+
+          asr_path="$(find backend-src/build -type f -name "$asr_name" | sort | head -n 1)"
+          tts_path="$(find backend-src/build -type f -name "$tts_name" | sort | head -n 1)"
+
+          if [[ -z "$asr_path" ]]; then
+            echo "::error::Built ASR sidecar was not found"
+            exit 1
+          fi
+
+          if [[ -z "$tts_path" ]]; then
+            echo "::error::Built TTS sidecar was not found"
+            exit 1
+          fi
+
+          cp "$asr_path" "src-tauri/server/$asr_name"
+          cp "$tts_path" "src-tauri/server/$tts_name"
+
+          if [[ "${BUILD_VULKAN}" == "true" ]]; then
+            if [[ "$RUNNER_OS" == "Windows" ]]; then
+              vulkan_asr_name="ASR.exe"
+              vulkan_bundle_name="ASR-vulkan.exe"
+            else
+              vulkan_asr_name="ASR"
+              vulkan_bundle_name="ASR-vulkan"
+            fi
+
+            vulkan_asr_path="$(find backend-src/build-vulkan -type f -name "$vulkan_asr_name" | sort | head -n 1)"
+            if [[ -z "$vulkan_asr_path" ]]; then
+              echo "::error::Built Vulkan ASR sidecar was not found"
+              exit 1
+            fi
+            cp "$vulkan_asr_path" "src-tauri/server/$vulkan_bundle_name"
+
+            if [[ "$RUNNER_OS" == "macOS" ]]; then
+              chmod +x "src-tauri/server/$vulkan_bundle_name"
+              vulkan_lib_dirs=()
+              if [[ -n "${VULKAN_SDK:-}" ]]; then
+                vulkan_lib_dirs+=("${VULKAN_SDK}/lib")
+              fi
+              if [[ -n "${VULKAN_LOADER_PREFIX:-}" ]]; then
+                vulkan_lib_dirs+=("${VULKAN_LOADER_PREFIX}/lib")
+              fi
+              if [[ -n "${MOLTENVK_PREFIX:-}" ]]; then
+                vulkan_lib_dirs+=("${MOLTENVK_PREFIX}/lib")
+              fi
+
+              for lib_dir in "${vulkan_lib_dirs[@]}"; do
+                cp "${lib_dir}"/libvulkan*.dylib "src-tauri/server/" 2>/dev/null || true
+                cp "${lib_dir}"/libMoltenVK*.dylib "src-tauri/server/" 2>/dev/null || true
+              done
+
+              if [[ ! -f "src-tauri/server/libMoltenVK.dylib" ]]; then
+                echo "::error::MoltenVK runtime library was not found"
+                exit 1
+              fi
+
+              printf '%s\n' \
+                '{' \
+                '  "file_format_version": "1.0.0",' \
+                '  "ICD": {' \
+                '    "library_path": "./libMoltenVK.dylib",' \
+                '    "api_version": "1.2.0"' \
+                '  }' \
+                '}' > "src-tauri/server/MoltenVK_icd.json"
+              install_name_tool -add_rpath "@executable_path" "src-tauri/server/$vulkan_bundle_name" 2>/dev/null || true
+              install_name_tool -change "${VULKAN_SDK}/lib/libvulkan.1.dylib" "@executable_path/libvulkan.1.dylib" "src-tauri/server/$vulkan_bundle_name" 2>/dev/null || true
+              install_name_tool -change "${VULKAN_SDK}/lib/libvulkan.dylib" "@executable_path/libvulkan.dylib" "src-tauri/server/$vulkan_bundle_name" 2>/dev/null || true
+            fi
+          fi
+
+          if [[ "$RUNNER_OS" != "Windows" ]]; then
+            chmod +x "src-tauri/server/$asr_name" "src-tauri/server/$tts_name"
+          fi
+
+          ls -lh src-tauri/server
+        shell: bash
+        env:
+          BUILD_VULKAN: ${{ matrix.build_vulkan }}
+
+      - name: Install frontend dependencies
+        run: npm ci
+        shell: bash
+
+      - name: Install ffmpeg sidecar
+        run: |
+          npm install --no-save ffmpeg-static
+          node .github/scripts/install-ffmpeg-sidecar.cjs .
+        shell: bash
+
+      - name: Build Tauri app
+        run: npm run build
+        shell: bash
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ugASR-${{ matrix.name }}
+          path: |
+            src-tauri/target/release/bundle/dmg/*.dmg
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*.exe
+
+      - name: Delete stale release assets
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          release_id="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG_NAME}" --jq '.id // empty' 2>/dev/null || true)"
+          if [[ ! "$release_id" =~ ^[0-9]+$ ]]; then
+            echo "No existing release for ${TAG_NAME}; nothing to clean."
+            exit 0
+          fi
+
+          gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets?per_page=100" \
+            --paginate \
+            --jq '.[] | "\(.id) \(.name)"' |
+          while read -r asset_id asset_name; do
+            case "$asset_name" in
+              *.dmg|*.msi|*.exe)
+                ;;
+              *)
+                echo "Deleting stale release asset: $asset_name"
+                gh api --method DELETE "repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}" >/dev/null || true
+                ;;
+            esac
+          done
+        shell: bash
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.RELEASE_TOKEN }}
+          files: |
+            src-tauri/target/release/bundle/dmg/*.dmg
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*.exe

@@ -1,0 +1,10 @@
+build/
+build-*/
+wav/
+test_improce__/
+ugASR/
+.DS_Store
+encrypted-models/
+models/
+ugASR-iOS/
+encrypted-tts-models/

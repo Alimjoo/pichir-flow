@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="ug" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="styles.css" />
+    <title>كۆپ تىل ئاۋاز تونۇش</title>
+    <script type="module" src="/main.js" defer></script>
+  </head>
+
+  <body>
+    <main class="app-shell">
+      <aside class="projects-panel" aria-label="تۈرلەر">
+        <div class="panel-header">
+          <div class="panel-title-row">
+            <h2 id="sidePanelTitle">تۈرلەر</h2>
+            <button
+              id="aboutBtn"
+              class="author-mark about-button"
+              type="button"
+              aria-haspopup="dialog"
+              aria-controls="aboutModal"
+              data-secure-title="aboutTitle"
+            >
+              <img data-secure-image="penguin" alt="" aria-hidden="true" />
+              <span lang="ug" dir="rtl" data-secure-text="aboutButton"></span>
+            </button>
+          </div>
+          <div class="panel-actions">
+            <button id="resumeAllBtn" class="resume-all-button" type="button" hidden>
+              ھەممىنى داۋاملاشتۇرۇش
+            </button>
+            <button id="clearProjectsBtn" class="clear-projects-button" type="button">
+              ھەممىنى ئۆچۈرۈش
+            </button>
+          </div>
+          <div id="asrBatchProgress" class="asr-batch-progress" hidden>
+            <div class="asr-batch-progress-meta">
+              <span id="asrBatchProgressLabel">ساقلاۋاتىدۇ</span>
+              <strong id="asrBatchProgressValue">0/0</strong>
+            </div>
+            <div class="asr-batch-progress-track">
+              <div id="asrBatchProgressBar" class="asr-batch-progress-bar"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="projectList" class="project-list"></div>
+      </aside>
+
+      <section class="workbench" aria-label="ئاۋاز تونۇش">
+        <header class="app-header">
+          <div>
+            <div class="app-title-line">
+              <h1 id="appTitle">ئاۋاز تونۇش</h1>
+            </div>
+            <div id="activeProjectTitle" class="active-project-title">
+              يېڭى تونۇش
+            </div>
+          </div>
+
+          <button
+            id="settingsBtn"
+            class="icon-button settings-button"
+            type="button"
+            title="تەڭشەك"
+            aria-label="تەڭشەك"
+          >
+            تەڭشەك
+          </button>
+
+          <div class="status-block">
+            <div id="serverLed" class="server-offline" title="مودىل"></div>
+            <span id="backendLabel" class="backend-label"></span>
+            <div id="status" class="status">مودىل يۈكلىنىۋاتىدۇ...</div>
+          </div>
+        </header>
+
+        <section id="asrPanel" class="mode-panel asr-panel">
+          <div class="toolbar">
+            <button id="startBtn" class="primary-button" type="button">
+              باشلاش
+            </button>
+            <button id="stopBtn" class="secondary-button" type="button">
+              توختىتىش
+            </button>
+
+            <label class="file-picker">
+              <span class="file-picker-caption">ئاۋاز ياكى ۋىدېئو</span>
+              <span class="file-picker-control">
+                <span class="file-picker-action">ھۆججەت تاللاش</span>
+                <span id="selectedFileName" class="selected-file-name">
+                  ھۆججەت تاللانمىدى
+                </span>
+              </span>
+              <input
+                id="audioFile"
+                class="file-input-hidden"
+                type="file"
+                accept="audio/*,video/*"
+                multiple
+              />
+            </label>
+
+            <button id="fileBtn" class="file-button" type="button">
+              ھۆججەتتىن تونۇش
+            </button>
+          </div>
+
+          <section class="transcript-pane" aria-label="نەتىجە">
+            <span id="confirmed"></span><span id="unconfirmed"></span>
+          </section>
+
+          <section class="timeline-pane" aria-label="ۋاقىت سىزىقى">
+            <div class="timeline-header">
+              <h2 id="resultPaneTitle">ۋاقىت سىزىقى</h2>
+              <div class="view-switch" role="group" aria-label="كۆرۈنۈش">
+                <button id="wholeViewBtn" type="button">پۈتۈن</button>
+                <button id="timelineViewBtn" type="button">ۋاقىت</button>
+              </div>
+              <span id="segmentCount">ئۇيغۇرچە</span>
+            </div>
+
+            <div id="timeline" class="result-content timeline-list"></div>
+          </section>
+        </section>
+      </section>
+
+      <footer class="app-license-footer" dir="rtl" aria-label="ئىگىدارلىق ۋە ئىجازەتنامە">
+        <span lang="ug" dir="rtl" data-secure-text="footerText"></span>
+      </footer>
+    </main>
+
+    <div id="settingsModal" class="modal-backdrop" hidden>
+      <section class="settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+        <div class="settings-dialog-header">
+          <h2 id="settingsTitle">تەڭشەك</h2>
+          <button id="settingsCloseBtn" class="icon-button" type="button" aria-label="تاقاش">
+            ×
+          </button>
+        </div>
+
+        <label class="setting-field">
+          <span>تىل</span>
+          <select id="asrLanguageSelect" dir="auto"></select>
+        </label>
+
+        <label class="setting-field">
+          <span>
+            ئەڭ چوڭ ۋاقىت ئوقى:
+            <strong id="maxUnconfirmedValue">15s</strong>
+          </span>
+          <input
+            id="maxUnconfirmedRange"
+            type="range"
+            min="3"
+            max="20"
+            step="1"
+            value="15"
+          />
+        </label>
+
+        <div class="settings-actions">
+          <button id="settingsConfirmBtn" class="settings-confirm-button" type="button">
+            دەلىللەش
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <div id="aboutModal" class="modal-backdrop" hidden>
+      <section class="about-dialog" role="dialog" aria-modal="true" aria-labelledby="aboutTitle" aria-describedby="aboutWarning">
+        <div class="settings-dialog-header">
+          <h2 id="aboutTitle" data-secure-text="aboutTitle"></h2>
+          <button id="aboutCloseBtn" class="icon-button" type="button" aria-label="تاقاش">
+            ×
+          </button>
+        </div>
+
+        <div class="about-author">
+          <span data-secure-text="authorLabel"></span>
+          <strong><bdi dir="ltr" data-secure-text="authorName"></bdi></strong>
+        </div>
+
+        <div class="about-contact-grid" aria-label="ئالاقە">
+          <figure class="about-contact-card">
+            <img data-secure-image="douyin" data-secure-alt="douyinLabel" alt="" />
+            <figcaption data-secure-text="douyinLabel"></figcaption>
+          </figure>
+          <figure class="about-contact-card">
+            <img data-secure-image="salon" data-secure-alt="salonLabel" alt="" />
+            <figcaption data-secure-text="salonLabel"></figcaption>
+          </figure>
+        </div>
+
+        <p id="aboutWarning" class="about-warning" data-secure-text="aboutWarning"></p>
+      </section>
+    </div>
+
+    <div id="licenseModal" class="modal-backdrop license-backdrop" hidden>
+      <section class="license-dialog" role="dialog" aria-modal="true" aria-labelledby="licenseTitle" aria-describedby="licenseIntro">
+        <div class="license-dialog-header">
+          <h2 id="licenseTitle">License Agreement / ئىجازەتنامە / 许可协议</h2>
+        </div>
+
+        <p id="licenseIntro" class="license-intro">
+          بۇ ئەپنى ئىشلىتىشتىن بۇرۇن ئىجازەتنامىنى ئوقۇپ قوشۇلۇڭ.
+        </p>
+
+        <pre id="licenseText" class="license-text" dir="auto"></pre>
+
+        <div class="license-actions">
+          <button id="licenseDeclineBtn" class="secondary-button danger-button" type="button">
+            قوشۇلمايمەن
+          </button>
+          <button id="licenseAgreeBtn" class="primary-button" type="button">
+            قوشۇلىمەن
+          </button>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>

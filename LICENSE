@@ -1,0 +1,306 @@
+PiVoiceLab 非商业源码可查看许可证 1.0
+中文（简体中文）
+
+版权所有 (c) 2026 Piyazon。保留所有权利。
+
+本许可证同时提供中文、维吾尔文和英文版本。若不同语言版本之间存在任何冲突，
+以英文版本为准。
+
+本许可证适用于本仓库中的 PiVoiceLab 应用源代码、用户界面、应用专用资源、文档、
+脚本及相关文件，但带有其自身许可证声明的第三方组件除外。第三方组件仍由其
+原始许可证管理。
+
+1. 免费非商业使用
+
+你可以为个人、教育、研究、测试、评估以及其他非商业目的使用、复制、学习、
+运行和修改本软件，但必须保留本许可证声明和所有版权声明。
+
+2. 禁止商业使用
+
+未经版权持有人事先书面许可，不得进行商业使用。被禁止的商业活动包括但不限于：
+
+- 销售、出租、租赁、许可、再许可本软件、修改版本、构建版本、安装包、模型，
+  或基于本软件的服务，或为其收费；
+- 使用本软件提供付费转写、语音、托管、API、SaaS、支持、咨询或集成服务；
+- 将本软件与付费产品、付费硬件、订阅、商业平台、广告支持产品或商业服务捆绑；
+- 使用本软件产生收入、费用、佣金、销售线索、商业优势或其他对价；
+- 删除、隐藏、更改或歪曲版权、许可证、所有权、署名、加密、模型保护或源码
+  保护声明。
+
+3. 源码和模型保护
+
+在上述允许的非商业目的范围内，本软件源码可查看。本软件并不是开放源代码促进会
+（OSI）定义下的开源软件。本许可证不授予任何绕过、禁用、删除、反向工程或规避
+本软件及其模型文件中的加密、模型保护、许可证检查、访问控制或其他保护机制的权利。
+
+4. 署名和分发
+
+你只能为非商业目的分享未经修改的本软件副本，并且必须包含本许可证。你只能为
+非商业目的分享修改后的副本，必须醒目说明你修改了本软件，并且必须继续使用同一
+许可证。
+
+任何分享、再分发、发布、镜像、张贴、上传或以其他方式向他人提供本软件或修改版本
+的人，必须清楚且醒目地说明：
+
+- 作者和版权持有人是 Piyazon；
+- 他们从哪里获得本软件，包括原始来源、下载页面、仓库、网站或其他已知来源位置；
+- 该副本是未经修改还是已经修改；
+- 本软件仅可在本许可证下用于非商业用途。
+
+这些署名和来源位置声明不得被删除、隐藏或变得难以找到。
+
+5. 商业许可
+
+任何商业使用都必须在商业活动开始前取得单独的书面商业许可证或版权持有人的书面
+许可。只有明确、书面并由版权持有人签署或以其他方式清楚批准的许可才有效。
+
+6. 未经授权的商业使用和约定损害赔偿
+
+如果你未经事先书面许可从事任何商业活动，你同意该活动属于未经授权，并且会造成
+难以精确衡量的损害。对于每一项未经授权的商业活动，你同意支付相当于该未经授权
+商业活动所收到、收取、开票或可归因的总收入、销售价格、费用、佣金、订阅收入、
+服务收入、广告收入或其他对价十（10）倍的约定损害赔偿。
+
+这些约定损害赔偿旨在作为对损害的合理估计，而不是罚金。它们不限制版权持有人寻求
+禁令救济、删除未经授权副本、追回法律费用、在法律允许范围内追回律师费、法定赔偿
+或法律允许的任何其他救济的权利。
+
+7. 无担保
+
+本软件按“原样”提供，不提供任何明示或默示担保，包括适销性、特定用途适用性和不侵权
+担保。你自行承担使用本软件的风险。
+
+8. 责任限制
+
+在法律允许的最大范围内，版权持有人不对因使用本软件而产生的任何间接、附带、特殊、
+后果性、惩戒性或惩罚性损害，或利润、数据、商誉或业务损失承担责任。
+
+9. 终止
+
+如果你违反本许可证，你在本许可证下的权利将自动终止。终止后，你必须停止使用、复制、
+分发或修改本软件，并删除所有未经授权的副本。
+
+10. 所有权
+
+本许可证未明确授予的所有权利均由版权持有人保留。
+
+---
+
+PiVoiceLab سودا بولمىغان مەنبە كودى كۆرۈشكە بولىدىغان ئىجازەتنامە 1.0
+ئۇيغۇرچە
+
+Copyright (c) 2026 Piyazon. بارلىق ھوقۇقلار ساقلاپ قېلىنىدۇ.
+
+بۇ ئىجازەتنامە خەنزۇچە، ئۇيغۇرچە ۋە ئىنگلىزچە نۇسخىلاردا بېرىلدى. ئەگەر تىل
+نۇسخىلىرى ئارىسىدا زىتلىق كۆرۈلسە، ئىنگلىزچە نۇسخا كۈچكە ئىگە بولىدۇ.
+
+بۇ ئىجازەتنامە بۇ ئامباردىكى PiVoiceLab ئەپ مەنبە كودى، ئىشلەتكۈچى يۈزى، ئەپكە خاس
+بايلىقلار، ھۆججەتلەر، سكرىپتلار ۋە مۇناسىۋەتلىك ھۆججەتلەرگە قوللىنىلىدۇ. ئۆزىنىڭ
+ئىجازەتنامە ئۇقتۇرۇشى بار ئۈچىنچى تەرەپ بۆلەكلىرى ئۆز ئەسلى ئىجازەتنامىسى بويىچە
+باشقۇرۇلىدۇ.
+
+1. ھەقسىز سودا بولمىغان ئىشلىتىش
+
+سىز بۇ يۇمشاق دېتالنى شەخسىي، مائارىپ، تەتقىقات، سىناق، باھالاش ۋە باشقا سودا
+بولمىغان مەقسەتلەردە ئىشلىتىش، كۆچۈرۈش، ئۆگىنىش، ئىجرا قىلىش ۋە ئۆزگەرتىشكە بولىدۇ.
+لېكىن بۇ ئىجازەتنامە ئۇقتۇرۇشى ۋە بارلىق نەشر ھوقۇقى ئۇقتۇرۇشلىرى ساقلىنىشى كېرەك.
+
+2. سودا ئىشلىتىش مەنئى قىلىنىدۇ
+
+نەشر ھوقۇقى ئىگىسىنىڭ ئالدىن يېزىلغان رۇخسىتى بولمىسا، سودا ئىشلىتىش چەكلىنىدۇ.
+چەكلەنگەن سودا پائالىيەتلىرى تۆۋەندىكىلەرنى ئۆز ئىچىگە ئالىدۇ، ئەمما بۇلار بىلەن
+چەكلەنمەيدۇ:
+
+- بۇ يۇمشاق دېتال، ئۆزگەرتىلگەن نۇسخا، build، قاچىلىغۇچ، model ياكى بۇ يۇمشاق
+  دېتالغا تايانغان مۇلازىمەتنى سېتىش، ئىجارىگە بېرىش، ئىجازەت بېرىش، قايتا ئىجازەت
+  بېرىش ياكى ئۇنىڭدىن ھەق ئېلىش؛
+- بۇ يۇمشاق دېتال ئارقىلىق ھەقلىق ئاۋاز تونۇش، ئاۋاز، host، API، SaaS، قوللاش،
+  مەسلىھەت ياكى بىرلەشتۈرۈش مۇلازىمىتى تەمىنلەش؛
+- بۇ يۇمشاق دېتالنى ھەقلىق مەھسۇلات، ھەقلىق ئۈسكۈنە، subscription، سودا سۇپىسى،
+  ئېلانلىق مەھسۇلات ياكى سودا مۇلازىمىتىگە قوشۇپ تارقىتىش؛
+- بۇ يۇمشاق دېتال ئارقىلىق كىرىم، ھەق، كومىسسىيە، سېتىش پۇرسىتى، سودا پايدىسى ياكى
+  باشقا قىممەت ھاسىل قىلىش؛
+- نەشر ھوقۇقى، ئىجازەتنامە، ئىگىدارلىق، ئىمزا، شىفىرلاش، model قوغداش ياكى مەنبە
+  كود قوغداش ئۇقتۇرۇشلىرىنى ئۆچۈرۈش، يوشۇرۇش، ئۆزگەرتىش ياكى خاتا كۆرسىتىش.
+
+3. مەنبە كود ۋە model قوغداش
+
+بۇ يۇمشاق دېتال پەقەت يۇقىرىدا رۇخسەت قىلىنغان سودا بولمىغان ئىشلىتىشلەر ئۈچۈن مەنبە
+كودى كۆرۈشكە بولىدىغان شەكىلدە بېرىلىدۇ. بۇ OSI ئېنىقلىمىسىدىكى open source ئەمەس.
+بۇ ئىجازەتنامە بۇ يۇمشاق دېتال ياكى model ھۆججەتلىرىدىكى شىفىرلاش، model قوغداش،
+ئىجازەت تەكشۈرۈش، كىرىش كونتروللىرى ياكى باشقا قوغداش مېخانىزملىرىنى ئايلىنىپ ئۆتۈش،
+ئۆچۈرۈش، reverse engineer قىلىش ياكى بۇزۇش ھوقۇقى بەرمەيدۇ.
+
+4. ئىمزا ۋە تارقىتىش
+
+سىز پەقەت سودا بولمىغان مەقسەتتە، بۇ ئىجازەتنامە بىلەن بىللە، ئۆزگەرتىلمىگەن نۇسخىنى
+تارقىتالايسىز. ئۆزگەرتىلگەن نۇسخىنى تارقاتقاندا، ئۆزگەرتكەنلىكىڭىزنى ئېنىق كۆرسىتىشىڭىز
+ۋە شۇ ئىجازەتنامە بىلەنلا تارقىتىشىڭىز كېرەك.
+
+بۇ يۇمشاق دېتالنى ياكى ئۆزگەرتىلگەن نۇسخىنى باشقىلارغا ھەمبەھىرلەيدىغان، قايتا
+تارقىتىدىغان، ئېلان قىلىدىغان، mirror قىلىدىغان، يوللايدىغان ياكى باشقا ئۇسۇلدا
+تەمىنلەيدىغان ھەرقانداق كىشى تۆۋەندىكىلەرنى ئېنىق ۋە كۆرۈنەرلىك كۆرسىتىشى كېرەك:
+
+- ئاپتور ۋە نەشر ھوقۇقى ئىگىسى Piyazon ئىكەنلىكى؛
+- بۇ يۇمشاق دېتالنى قەيەردىن ئالغانلىقى، ئەسلى مەنبە، چۈشۈرۈش بېتى، ئامبار، تور بېكەت
+  ياكى باشقا مەنبە ئورنى مەلۇم بولسا شۇلار؛
+- نۇسخا ئۆزگەرتىلمىگەنمۇ ياكى ئۆزگەرتىلگەنمۇ؛
+- بۇ يۇمشاق دېتال پەقەت بۇ ئىجازەتنامە بويىچە سودا بولمىغان ئىشلىتىشكەلا رۇخسەت قىلىنىدۇ.
+
+بۇ ئىمزا ۋە مەنبە ئۇقتۇرۇشلىرى ئۆچۈرۈلمەسلىكى، يوشۇرۇلماسلىقى ياكى تېپىش قىيىن قىلىنماسلىقى
+كېرەك.
+
+5. سودا رۇخسىتى
+
+ھەرقانداق سودا ئىشلىتىش سودا پائالىيىتى باشلىنىشتىن بۇرۇن ئايرىم يېزىلغان سودا ئىجازىتى
+ياكى نەشر ھوقۇقى ئىگىسىنىڭ يېزىلغان رۇخسىتىنى تەلەپ قىلىدۇ. رۇخسەت پەقەت ئېنىق،
+يېزىلغان ۋە نەشر ھوقۇقى ئىگىسى ئىمزالىغان ياكى روشەن تەستىقلىغان بولسا كۈچكە ئىگە.
+
+6. رۇخسەتسىز سودا ئىشلىتىش ۋە كېلىشىملەشكەن زىيان تۆلىمى
+
+ئەگەر سىز ئالدىن يېزىلغان رۇخسەتسىز ھەرقانداق سودا پائالىيىتى قىلسىڭىز، ئۇ پائالىيەتنىڭ
+رۇخسەتسىز ئىكەنلىكى ۋە زىياننى ئېنىق ئۆلچەش قىيىن ئىكەنلىكىگە قوشۇلىسىز. ھەر بىر
+رۇخسەتسىز سودا پائالىيىتى ئۈچۈن، شۇ پائالىيەتتىن ئېلىنغان، تەلەپ قىلىنغان، invoice
+قىلىنغان ياكى شۇ پائالىيەتكە باغلىق بولغان جەمئىي كىرىم، سېتىش باھاسى، ھەق، كومىسسىيە،
+subscription كىرىمى، مۇلازىمەت كىرىمى، ئېلان كىرىمى ياكى باشقا قىممەتنىڭ ئون (10)
+ھەسسىسىگە تەڭ كېلىشىملەشكەن زىيان تۆلىمىنى تۆلەشكە قوشۇلىسىز.
+
+بۇ زىيان تۆلىمى جازا ئەمەس، بەلكى زىياننىڭ مۇۋاپىق مۆلچەرىدۇر. بۇ نەشر ھوقۇقى ئىگىسىنىڭ
+سوت چەكلىمىسى تەلەپ قىلىش، رۇخسەتسىز نۇسخىلارنى ئۆچۈرگۈزۈش، قانۇنىي چىقىملارنى قايتۇرۇۋېلىش،
+قانۇن رۇخسەت قىلغان ئادۋوكات ھەققى، قانۇنىي تۆلەم ياكى قانۇندا بار باشقا ھوقۇقلارنى
+تەلەپ قىلىشىنى چەكلىمەيدۇ.
+
+7. كاپالەت يوق
+
+بۇ يۇمشاق دېتال "as is" شەكلىدە تەمىنلىنىدۇ، ھېچقانداق روشەن ياكى يوشۇرۇن كاپالەت
+بېرىلمەيدۇ. سودا قىلىشقا ماسلىق، مەلۇم مەقسەتكە ماسلىق ۋە ھوقۇققا دەخلى قىلماسلىق
+كاپالىتىمۇ بېرىلمەيدۇ. ئىشلىتىش خەۋپى سىزنىڭ ئۆزىڭىزگە تەۋە.
+
+8. مەسئۇلىيەت چەكلىمىسى
+
+قانۇن رۇخسەت قىلغان ئەڭ چوڭ دائىرىدە، نەشر ھوقۇقى ئىگىسى بۇ يۇمشاق دېتالنى ئىشلىتىشتىن
+كېلىپ چىققان ۋاسىتىلىك، تاسادىپىي، ئالاھىدە، نەتىجىۋى، ئۈلگىلىك ياكى جازالىق زىيانلارغا،
+ياكى پايدا، سانلىق مەلۇمات، نام-ئابرۇي ياكى سودا زىيىنىغا مەسئۇل بولمايدۇ.
+
+9. ئاخىرلىشىش
+
+ئەگەر بۇ ئىجازەتنامىنى بۇزسىڭىز، بۇ ئىجازەتنامە بويىچە بولغان ھوقۇقلىرىڭىز ئاپتوماتىك
+ئاخىرلىشىدۇ. ئاخىرلاشقاندىن كېيىن، بۇ يۇمشاق دېتالنى ئىشلىتىش، كۆچۈرۈش، تارقىتىش ياكى
+ئۆزگەرتىشنى توختىتىشىڭىز، ھەمدە بارلىق رۇخسەتسىز نۇسخىلارنى ئۆچۈرۈشىڭىز كېرەك.
+
+10. ئىگىدارلىق
+
+بۇ ئىجازەتنامە ئېنىق بەرمىگەن بارلىق ھوقۇقلار نەشر ھوقۇقى ئىگىسىدە ساقلىنىدۇ.
+
+---
+
+PiVoiceLab Non-Commercial Source-Available License 1.0
+English
+
+Copyright (c) 2026 Piyazon. All rights reserved.
+
+This license is provided in Chinese, Uyghur, and English. If there is any
+conflict between language versions, the English version controls.
+
+This license applies to the PiVoiceLab application source code, user interface,
+application-specific assets, documentation, scripts, and related files in this
+repository, except for third-party components that include their own license
+notices. Third-party components remain governed by their original licenses.
+
+1. Free Non-Commercial Use
+
+You may use, copy, study, run, and modify this software for personal,
+educational, research, testing, evaluation, and other non-commercial purposes,
+provided that you keep this license notice and all copyright notices intact.
+
+2. No Commercial Use
+
+Commercial use is not allowed without prior written permission from the
+copyright holder. Prohibited commercial activity includes, but is not limited to:
+
+- selling, renting, leasing, licensing, sublicensing, or charging for this
+  software, modified versions, builds, installers, models, or services based on
+  this software;
+- using this software to provide paid transcription, speech, hosting, API,
+  SaaS, support, consulting, or integration services;
+- bundling this software with a paid product, paid hardware, subscription,
+  commercial platform, advertisement-supported product, or commercial service;
+- using this software to generate revenue, fees, commissions, leads, commercial
+  advantage, or other consideration;
+- removing, hiding, changing, or misrepresenting copyright, license, ownership,
+  attribution, encryption, model-protection, or source-protection notices.
+
+3. Source Code and Model Protection
+
+This software is source-available for the permitted non-commercial purposes
+above. It is not open source under the Open Source Initiative definition. No
+license is granted to bypass, disable, remove, reverse engineer, or circumvent
+encryption, model-protection, license checks, access controls, or other
+protection mechanisms included with this software or its model files.
+
+4. Attribution and Distribution
+
+You may share unmodified copies of this software only for non-commercial
+purposes and only with this license included. You may share modified copies only
+for non-commercial purposes, only with prominent notice that you changed the
+software, and only under this same license.
+
+Anyone who shares, redistributes, publishes, mirrors, posts, uploads, or
+otherwise provides this software or a modified version to another person must
+clearly and prominently state:
+
+- that the author/copyright holder is Piyazon;
+- where they obtained the software, including the original source, download
+  page, repository, website, or other source location if known;
+- whether the copy is unmodified or modified;
+- that the software is licensed only for non-commercial use under this license.
+
+These attribution and source-location notices must not be removed, hidden, or
+made difficult to find.
+
+5. Commercial Permission
+
+Any commercial use requires a separate written commercial license or written
+permission from the copyright holder before the commercial activity begins.
+Permission is valid only if it is explicit, written, and signed or otherwise
+clearly approved by the copyright holder.
+
+6. Unauthorized Commercial Use and Liquidated Damages
+
+If you engage in any commercial activity without prior written permission, you
+agree that the activity is unauthorized and causes harm that is difficult to
+measure precisely. For each unauthorized commercial activity, you agree to pay
+liquidated damages equal to ten (10) times the total gross revenue, sales price,
+fees, commissions, subscription income, service income, advertising income, or
+other consideration received, charged, invoiced, or attributable to that
+unauthorized commercial activity.
+
+These liquidated damages are intended as a reasonable estimate of harm and not
+as a penalty. They do not limit the copyright holder's right to seek injunctive
+relief, removal of unauthorized copies, recovery of legal costs, attorney fees
+where allowed, statutory damages where allowed, or any other remedy available by
+law.
+
+7. No Warranty
+
+This software is provided "as is" without warranty of any kind, express or
+implied, including warranties of merchantability, fitness for a particular
+purpose, and non-infringement. You use this software at your own risk.
+
+8. Limitation of Liability
+
+To the maximum extent permitted by law, the copyright holder is not liable for
+any indirect, incidental, special, consequential, exemplary, or punitive damages,
+or for loss of profits, data, goodwill, or business, arising from use of this
+software.
+
+9. Termination
+
+Your rights under this license terminate automatically if you violate this
+license. After termination, you must stop using, copying, distributing, or
+modifying the software and delete all unauthorized copies.
+
+10. Ownership
+
+All rights not expressly granted in this license are reserved by the copyright
+holder.

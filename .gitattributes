@@ -1,0 +1,16 @@
+*.css text eol=lf
+*.html text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.mjs text eol=lf
+*.rs text eol=lf
+*.svg text eol=lf
+*.ttf binary
+*.ico binary
+*.icns binary
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.model binary
+*.gguf binary
+*.exe binary
