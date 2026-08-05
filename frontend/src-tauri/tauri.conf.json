@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "PiVoiceLab",
-  "version": "1.4.0",
-  "identifier": "top.piyazon.ugasr",
+  "productName": "PichirFlow",
+  "version": "0.1.0",
+  "identifier": "top.piyazon.pichirflow",
   "build": {
     "beforeDevCommand": "npm run frontend:dev",
     "beforeBuildCommand": "npm run frontend:build",

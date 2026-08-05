@@ -197,7 +197,7 @@ fn bundled_license_text(app: &AppHandle) -> String {
         .and_then(|path| fs::read_to_string(path).ok())
         .unwrap_or_else(|| EMBEDDED_LICENSE_TEXT.to_string());
 
-    text.replace("ugASR", "PiVoiceLab")
+    text.replace("ugASR", "PichirFlow")
 }
 
 fn license_hash(text: &str) -> String {

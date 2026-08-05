@@ -577,7 +577,7 @@ fn cleanup_stale_local_service(service: LocalService) -> Result<(), String> {
     )
     .map_err(|err| {
         format!(
-            "port {port} is already in use and did not answer PiVoiceLab {} health check: {err}",
+            "port {port} is already in use and did not answer PichirFlow {} health check: {err}",
             service.label()
         )
     })?;
@@ -587,7 +587,7 @@ fn cleanup_stale_local_service(service: LocalService) -> Result<(), String> {
 
     if status != 200 || !health_body_matches(body, service, None) {
         return Err(format!(
-            "port {port} is already in use by a non-PiVoiceLab {} service",
+            "port {port} is already in use by a non-PichirFlow {} service",
             service.label()
         ));
     }
@@ -609,7 +609,7 @@ fn cleanup_stale_local_service(service: LocalService) -> Result<(), String> {
     }
 
     Err(format!(
-        "stale PiVoiceLab {} service on port {port} did not shut down",
+        "stale PichirFlow {} service on port {port} did not shut down",
         service.label()
     ))
 }

@@ -120,7 +120,7 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: PiVoiceLab-${{ matrix.name }}
+          name: PichirFlow-${{ matrix.name }}
           path: release-artifacts/*
           if-no-files-found: error
 

@@ -1,4 +1,4 @@
-PiVoiceLab 非商业源码可查看许可证 1.0
+PichirFlow 非商业源码可查看许可证 1.0
 中文（简体中文）
 
 版权所有 (c) 2026 Piyazon。保留所有权利。
@@ -6,7 +6,7 @@ PiVoiceLab 非商业源码可查看许可证 1.0
 本许可证同时提供中文、维吾尔文和英文版本。若不同语言版本之间存在任何冲突，
 以英文版本为准。
 
-本许可证适用于本仓库中的 PiVoiceLab 应用源代码、用户界面、应用专用资源、文档、
+本许可证适用于本仓库中的 PichirFlow 应用源代码、用户界面、应用专用资源、文档、
 脚本及相关文件，但带有其自身许可证声明的第三方组件除外。第三方组件仍由其
 原始许可证管理。
 
@@ -86,7 +86,7 @@ PiVoiceLab 非商业源码可查看许可证 1.0
 
 ---
 
-PiVoiceLab سودا بولمىغان مەنبە كودى كۆرۈشكە بولىدىغان ئىجازەتنامە 1.0
+PichirFlow سودا بولمىغان مەنبە كودى كۆرۈشكە بولىدىغان ئىجازەتنامە 1.0
 ئۇيغۇرچە
 
 Copyright (c) 2026 Piyazon. بارلىق ھوقۇقلار ساقلاپ قېلىنىدۇ.
@@ -94,7 +94,7 @@ Copyright (c) 2026 Piyazon. بارلىق ھوقۇقلار ساقلاپ قېلى�
 بۇ ئىجازەتنامە خەنزۇچە، ئۇيغۇرچە ۋە ئىنگلىزچە نۇسخىلاردا بېرىلدى. ئەگەر تىل
 نۇسخىلىرى ئارىسىدا زىتلىق كۆرۈلسە، ئىنگلىزچە نۇسخا كۈچكە ئىگە بولىدۇ.
 
-بۇ ئىجازەتنامە بۇ ئامباردىكى PiVoiceLab ئەپ مەنبە كودى، ئىشلەتكۈچى يۈزى، ئەپكە خاس
+بۇ ئىجازەتنامە بۇ ئامباردىكى PichirFlow ئەپ مەنبە كودى، ئىشلەتكۈچى يۈزى، ئەپكە خاس
 بايلىقلار، ھۆججەتلەر، سكرىپتلار ۋە مۇناسىۋەتلىك ھۆججەتلەرگە قوللىنىلىدۇ. ئۆزىنىڭ
 ئىجازەتنامە ئۇقتۇرۇشى بار ئۈچىنچى تەرەپ بۆلەكلىرى ئۆز ئەسلى ئىجازەتنامىسى بويىچە
 باشقۇرۇلىدۇ.
@@ -194,7 +194,7 @@ subscription كىرىمى، مۇلازىمەت كىرىمى، ئېلان كىر�
 
 ---
 
-PiVoiceLab Non-Commercial Source-Available License 1.0
+PichirFlow Non-Commercial Source-Available License 1.0
 English
 
 Copyright (c) 2026 Piyazon. All rights reserved.
@@ -202,7 +202,7 @@ Copyright (c) 2026 Piyazon. All rights reserved.
 This license is provided in Chinese, Uyghur, and English. If there is any
 conflict between language versions, the English version controls.
 
-This license applies to the PiVoiceLab application source code, user interface,
+This license applies to the PichirFlow application source code, user interface,
 application-specific assets, documentation, scripts, and related files in this
 repository, except for third-party components that include their own license
 notices. Third-party components remain governed by their original licenses.
