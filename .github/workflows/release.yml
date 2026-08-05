@@ -55,7 +55,7 @@ jobs:
             asr_sidecar: "ASR-vulkan"
             install_vulkan: "true"
             bundle_moltenvk: "false"
-            tauri_args: ""
+            tauri_args: "--bundles deb"
 
     steps:
       - name: Checkout repository
