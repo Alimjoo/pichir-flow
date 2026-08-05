@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const { createRequire } = require("module");
 
-const frontendDir = path.resolve(process.argv[2] || ".");
+const frontendDir = path.resolve(process.argv[2] || "frontend");
 const serverDir = path.join(frontendDir, "src-tauri", "server");
 const requireFromFrontend = createRequire(path.join(frontendDir, "package.json"));
 const ffmpegPath = requireFromFrontend("ffmpeg-static");

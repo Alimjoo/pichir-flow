@@ -1,0 +1,131 @@
+name: Build release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+  WHISPER_CPP_REF: 3e9b7d0fef3528ee2208da3cdb873a2c53d2ae2f
+  SILERO_MODEL_URL: https://huggingface.co/piyazon/pichier-flow-models/resolve/main/silero-v6.2.1-ggml.bin
+  WHISPER_SMALL_MODEL_URL: https://huggingface.co/piyazon/pichier-flow-models/resolve/main/whisper-small-q5_0.bin
+  WHISPER_SMALL_UYGHUR_MODEL_URL: https://huggingface.co/piyazon/pichier-flow-models/resolve/main/whisper-small-uyghur-q5_0.bin
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            os: macos-latest
+            tauri_args: ""
+          - name: Windows
+            os: windows-latest
+            tauri_args: "--config src-tauri/tauri.windows.conf.json"
+          - name: Linux
+            os: ubuntu-latest
+            tauri_args: ""
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            curl \
+            file \
+            libayatana-appindicator3-dev \
+            libgtk-3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libwebkit2gtk-4.1-dev \
+            patchelf
+        shell: bash
+
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+        shell: bash
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Checkout whisper.cpp
+        uses: actions/checkout@v4
+        with:
+          repository: ggml-org/whisper.cpp
+          ref: ${{ env.WHISPER_CPP_REF }}
+          path: whisper.cpp
+          persist-credentials: false
+
+      - name: Download public model assets
+        run: bash scripts/ci/download-models.sh frontend/src-tauri/server
+        shell: bash
+
+      - name: Build native ASR sidecar
+        run: |
+          whisper_cpp_dir="$(pwd)/whisper.cpp"
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DWHISPER_CPP_DIR="${whisper_cpp_dir}" \
+            -DBUILD_SHARED_LIBS=OFF
+          cmake --build build --config Release --target ASR --parallel 2
+        shell: bash
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+        shell: bash
+
+      - name: Install ffmpeg sidecar
+        working-directory: frontend
+        run: |
+          npm install --no-save ffmpeg-static
+          node ../scripts/ci/install-ffmpeg-sidecar.cjs .
+        shell: bash
+
+      - name: Build Tauri app
+        working-directory: frontend
+        env:
+          TAURI_ARGS: ${{ matrix.tauri_args }}
+        run: npm run tauri -- build ${TAURI_ARGS}
+        shell: bash
+
+      - name: Collect installer packages
+        run: bash scripts/ci/collect-release-artifacts.sh
+        shell: bash
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PiVoiceLab-${{ matrix.name }}
+          path: release-artifacts/*
+          if-no-files-found: error
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-artifacts/*
