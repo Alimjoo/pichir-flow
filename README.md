@@ -33,6 +33,43 @@ PichirFlow is a cross-platform desktop application for private speech-to-text tr
 - CPU fallback when a compatible accelerated backend is unavailable.
 - A local WebSocket API for custom integrations.
 
+## Roadmap and to-do
+
+This checklist records what PichirFlow already supports and the main areas planned for future work. Checked items are available now; unchecked items are ideas or planned work rather than release promises.
+
+### Completed
+
+- [x] Fully local microphone transcription.
+- [x] Audio and video transcription with multi-file queues.
+- [x] Uyghur-only and multilingual model separation with automatic switching.
+- [x] Silero VAD, live preview text, silence-based confirmation, and queued-audio finalization.
+- [x] Local project history and resume support for incomplete file jobs.
+- [x] Whole-text and timestamped timeline views.
+- [x] SRT export and recorded microphone-audio export.
+- [x] English, Uyghur, Chinese, and Spanish display languages, including RTL support.
+- [x] Metal, Vulkan, and CPU backend selection/fallback paths.
+- [x] Raw microphone capture that can acoustically hear computer-speaker playback.
+- [x] Cross-platform macOS, Windows, and Linux release workflows.
+- [x] Standalone local WebSocket API.
+
+### Planned and open for contributions
+
+- [ ] **System-wide voice typing in any application**, with recognized text inserted at the active cursor.
+- [ ] Global push-to-talk and start/stop keyboard shortcuts.
+- [ ] Direct system-audio/loopback capture without relying on the physical microphone.
+- [ ] Microphone/input-device selector and live input-level meter.
+- [ ] Optional raw, noise-suppressed, and voice-focused microphone modes.
+- [ ] Editable transcripts with search, correction, and segment merging/splitting.
+- [ ] Additional exports such as plain text, VTT, and structured JSON.
+- [ ] Speaker diarization and speaker labels.
+- [ ] More community-contributed display languages.
+- [ ] Official CUDA release packages where supported.
+- [ ] Automatic application updates and improved signed/notarized distribution.
+- [ ] Broader automated tests for streaming, VAD, model switching, migrations, and exports.
+- [ ] Accessibility review, complete keyboard navigation, and screen-reader improvements.
+
+Want to help with an unchecked item or add a display language? Start with the [Contribution Guide](CONTRIBUTING.md).
+
 ## Models
 
 Official release builds include three local model files:
@@ -351,16 +388,53 @@ Stop drains all queued audio before finalizing the project. The status displays 
 
 ## Contributing
 
-Bug reports and focused pull requests are welcome. When reporting an ASR problem, include the operating system, hardware/backend, selected language, reproduction steps, and the relevant tail of `ASR-debug.log`. Do not attach private recordings unless you intentionally want to share them.
+Bug reports, documentation improvements, translations, platform fixes, and focused pull requests are welcome. Read the full [Contribution Guide](CONTRIBUTING.md) before submitting a change.
 
-Contributions and modified builds remain subject to the repository license.
+Quick checklist:
+
+- Search existing issues and discuss large changes before implementation.
+- Keep each pull request focused on one problem.
+- Include the operating system, hardware/backend, language, and test results.
+- Run the relevant C++, frontend, and Rust validation commands.
+- Remove private recordings, transcripts, local paths, credentials, and generated files.
+- Preserve the strict separation between the Uyghur-only and multilingual models.
+
+Contributions and modified builds remain subject to the repository license. See [CONTRIBUTING.md](CONTRIBUTING.md#license-and-attribution) for details.
 
 ## Support the project
 
-If PichirFlow is useful to you and you would like to support continued development, you can donate through Ko-fi:
+<p align="center">
+  <strong>Help keep private, local speech tools moving forward.</strong><br>
+  Donations support development, testing, model integration, and cross-platform releases.
+</p>
+
+<table align="center">
+  <tr>
+    <td align="center" width="230">
+      <a href="https://ko-fi.com/piyazon">
+        <img src="docs/assets/ko-fi-piyazon-qr.png" width="190" alt="QR code for Piyazon's Ko-fi page">
+      </a>
+      <br>
+      <sub><strong>Scan to open Ko-fi</strong></sub>
+    </td>
+    <td align="center" width="470">
+      <h3>☕ Support PichirFlow</h3>
+      <p>If PichirFlow is useful to you, consider supporting its continued development through Ko-fi.</p>
+      <p>
+        <a href="https://ko-fi.com/piyazon">
+          <img src="https://img.shields.io/badge/Support%20PichirFlow%20on%20Ko--fi-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Support PichirFlow on Ko-fi">
+        </a>
+      </p>
+      <p><a href="https://ko-fi.com/piyazon"><strong>ko-fi.com/piyazon</strong></a></p>
+      <sub>Thank you for supporting independent development.</sub>
+    </td>
+  </tr>
+</table>
 
 <p align="center">
-  <a href="https://ko-fi.com/piyazon"><img src="https://img.shields.io/badge/Support%20PichirFlow%20on%20Ko--fi-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Support PichirFlow on Ko-fi"></a>
+  <a href="https://github.com/Alimjoo/pichir-flow/stargazers"><img src="https://img.shields.io/badge/Star-the%20repository-24292f?logo=github" alt="Star the repository"></a>
+  <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/Contribute-code%20or%20translations-2ea44f?logo=github" alt="Contribute code or translations"></a>
+  <a href="https://github.com/Alimjoo/pichir-flow/issues"><img src="https://img.shields.io/badge/Report-an%20issue-d73a49?logo=github" alt="Report an issue"></a>
 </p>
 
 ## License

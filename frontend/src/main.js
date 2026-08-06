@@ -733,9 +733,9 @@ function clampNumber(value, min, max, fallback) {
 }
 
 const ASR_LANGUAGE_CODES = {
+  English: "en",
   Uyghur: "uz",
   Chinese: "zh",
-  English: "en",
   Spanish: "es",
   Hindi: "hi",
   Bengali: "bn",
