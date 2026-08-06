@@ -153,7 +153,7 @@ static void log_stage(const std::string& text) {
     std::lock_guard<std::mutex> lock(log_mutex);
 
     if (!log_initialized) {
-        const char* configured_path = std::getenv("UGASR_LOG_FILE");
+        const char* configured_path = std::getenv("PICHIRFLOW_LOG_FILE");
         const std::string log_path =
             (configured_path != nullptr && configured_path[0] != '\0')
                 ? std::string(configured_path)
@@ -1047,10 +1047,10 @@ static RequestedBackend parse_requested_backend_text(const std::string& text) {
 static RequestedBackend requested_backend_from_runtime(
     const char* executable_name
 ) {
-    const char* configured_backend = std::getenv("UGASR_REQUIRED_BACKEND");
+    const char* configured_backend = std::getenv("PICHIRFLOW_REQUIRED_BACKEND");
 
     if (configured_backend == nullptr || configured_backend[0] == '\0') {
-        configured_backend = std::getenv("UGASR_BACKEND");
+        configured_backend = std::getenv("PICHIRFLOW_BACKEND");
     }
 
     if (configured_backend != nullptr && configured_backend[0] != '\0') {
@@ -1079,7 +1079,7 @@ static RequestedBackend requested_backend_from_runtime(
 }
 
 static std::string backend_label_from_runtime(const char* executable_name) {
-    const char* value = std::getenv("UGASR_BACKEND_LABEL");
+    const char* value = std::getenv("PICHIRFLOW_BACKEND_LABEL");
 
     if (value != nullptr) {
         std::string label(value);
@@ -1246,7 +1246,7 @@ static void log_registered_backends() {
 
 static void load_backend_plugins_for_request(RequestedBackend backend) {
 #if defined(_WIN32)
-    if (backend == RequestedBackend::Cpu || env_var_enabled("UGASR_LOAD_BACKENDS")) {
+    if (backend == RequestedBackend::Cpu || env_var_enabled("PICHIRFLOW_LOAD_BACKENDS")) {
         log_stage("Loading ggml backend plugins from current directory");
         ggml_backend_load_all_from_path(".");
     } else {
@@ -1257,7 +1257,7 @@ static void load_backend_plugins_for_request(RequestedBackend backend) {
         );
     }
 #else
-    if (env_var_enabled("UGASR_LOAD_BACKENDS")) {
+    if (env_var_enabled("PICHIRFLOW_LOAD_BACKENDS")) {
         log_stage("Loading ggml backend plugins from current directory");
         ggml_backend_load_all_from_path(".");
     }
@@ -2154,7 +2154,7 @@ int main(int argc, char** argv) {
             executable_name.empty() ? nullptr : executable_name.c_str()
         );
 
-    if (env_var_enabled("UGASR_DISABLE_GPU")) {
+    if (env_var_enabled("PICHIRFLOW_DISABLE_GPU")) {
         requested_backend = RequestedBackend::Cpu;
     }
 
@@ -2171,23 +2171,23 @@ int main(int argc, char** argv) {
     log_registered_backends();
 
     const std::string vad_model_path =
-        env_var_string("UGASR_HELPER_MODEL_PATH", "./silero-v6.2.1-ggml.bin");
+        env_var_string("PICHIRFLOW_HELPER_MODEL_PATH", "./silero-v6.2.1-ggml.bin");
 
     const std::string whisper_model_path =
         env_var_string(
-            "UGASR_WHISPER_MODEL_PATH",
-            env_var_string("UGASR_UYGHUR_MODEL_PATH", "./whisper-small-uyghur-q5_0.bin")
+            "PICHIRFLOW_WHISPER_MODEL_PATH",
+            env_var_string("PICHIRFLOW_UYGHUR_MODEL_PATH", "./whisper-small-uyghur-q5_0.bin")
         );
     const std::string whisper_model_family =
-        env_var_string("UGASR_ASR_MODEL_FAMILY", "uyghur");
+        env_var_string("PICHIRFLOW_ASR_MODEL_FAMILY", "uyghur");
 
     umsc converter("ULS", "UAS");
     const int n_threads =
-        env_var_int("UGASR_CPU_THREADS", 8, 1, 16);
+        env_var_int("PICHIRFLOW_CPU_THREADS", 8, 1, 16);
 
     PreviewSettings preview_settings;
     preview_settings.enabled =
-        !env_var_enabled("UGASR_DISABLE_PREVIEW");
+        !env_var_enabled("PICHIRFLOW_DISABLE_PREVIEW");
 
 #if defined(_WIN32)
     preview_settings.skip_speech_vad_segment_release =
@@ -2227,7 +2227,7 @@ int main(int argc, char** argv) {
 
     // ---------------- ASR model ----------------
 
-    const bool require_gpu = env_var_enabled("UGASR_REQUIRE_GPU");
+    const bool require_gpu = env_var_enabled("PICHIRFLOW_REQUIRE_GPU");
     if (!has_backend(requested_backend)) {
         log_stage(
             "Required backend is unavailable: " +
@@ -2302,8 +2302,8 @@ int main(int argc, char** argv) {
     server.set_reuse_addr(true);
 
     const std::string launch_id =
-        std::getenv("UGASR_SERVER_LAUNCH_ID")
-            ? std::getenv("UGASR_SERVER_LAUNCH_ID")
+        std::getenv("PICHIRFLOW_SERVER_LAUNCH_ID")
+            ? std::getenv("PICHIRFLOW_SERVER_LAUNCH_ID")
             : "";
     std::atomic<bool> shutdown_requested{false};
 
@@ -2325,7 +2325,7 @@ int main(int argc, char** argv) {
             con->set_status(websocketpp::http::status_code::ok);
             con->set_body(
                 "{\"ok\":true"
-                ",\"app\":\"ugASR\""
+                ",\"app\":\"PichirFlow\""
                 ",\"service\":\"ASR\""
                 ",\"launchId\":\"" + json_escape(launch_id) + "\""
                 ",\"model\":\"" + json_escape(app.whisper_model.mode) + "\""
@@ -2337,7 +2337,7 @@ int main(int argc, char** argv) {
 
         if (method == "POST" && resource == "/api/shutdown") {
             con->set_status(websocketpp::http::status_code::ok);
-            con->set_body("{\"ok\":true,\"app\":\"ugASR\",\"service\":\"ASR\",\"shuttingDown\":true}");
+            con->set_body("{\"ok\":true,\"app\":\"PichirFlow\",\"service\":\"ASR\",\"shuttingDown\":true}");
 
             if (!shutdown_requested.exchange(true)) {
                 std::thread([&server]() {

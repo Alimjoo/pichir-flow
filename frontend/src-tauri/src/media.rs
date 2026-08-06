@@ -222,7 +222,7 @@ fn temp_extract_dir() -> PathBuf {
         .map(|duration| duration.as_nanos())
         .unwrap_or(0);
 
-    std::env::temp_dir().join(format!("ugasr-extract-{}-{nanos}", std::process::id()))
+    std::env::temp_dir().join(format!("pichirflow-extract-{}-{nanos}", std::process::id()))
 }
 
 fn read_u16_le(bytes: &[u8], offset: usize) -> Result<u16, String> {

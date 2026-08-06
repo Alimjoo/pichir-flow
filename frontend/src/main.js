@@ -82,12 +82,15 @@ let currentRunOffsetMs = 0;
 
 const WS_URL = "ws://localhost:47831";
 const WS_CONNECT_TIMEOUT_MS = 120000;
-const PROJECTS_KEY = "ugasr.projects.v1";
-const RESULT_VIEW_KEY = "ugasr.resultView.v1";
-const SETTINGS_KEY = "ugasr.settings.v1";
+const STORAGE_NAMESPACE = "pichirflow";
+const LEGACY_STORAGE_NAMESPACE = ["ug", "asr"].join("");
+const PROJECTS_KEY = `${STORAGE_NAMESPACE}.projects.v1`;
+const RESULT_VIEW_KEY = `${STORAGE_NAMESPACE}.resultView.v1`;
+const SETTINGS_KEY = `${STORAGE_NAMESPACE}.settings.v1`;
 const SETTINGS_VERSION = 3;
 const DEFAULT_MAX_UNCONFIRMED_SEC = 15;
-const MEDIA_DB_NAME = "ugasr-media";
+const MEDIA_DB_NAME = `${STORAGE_NAMESPACE}-media`;
+const LEGACY_MEDIA_DB_NAME = `${LEGACY_STORAGE_NAMESPACE}-media`;
 const MEDIA_DB_VERSION = 1;
 const MEDIA_STORE_NAME = "media";
 const ASR_PROJECT_SOURCE_TYPES = new Set(["microphone", "file", "video"]);
@@ -1009,6 +1012,28 @@ function asrModelKey(settings = appSettings) {
   return isUyghurAsrLanguage(settings.asrLanguage) ? "fast" : "non-uyghur";
 }
 
+function migrateLegacyLocalStorage() {
+  const entries = [
+    [PROJECTS_KEY, "projects.v1"],
+    [RESULT_VIEW_KEY, "resultView.v1"],
+    [SETTINGS_KEY, "settings.v1"],
+  ];
+
+  for (const [currentKey, suffix] of entries) {
+    if (localStorage.getItem(currentKey) !== null) {
+      continue;
+    }
+
+    const legacyKey = `${LEGACY_STORAGE_NAMESPACE}.${suffix}`;
+    const legacyValue = localStorage.getItem(legacyKey);
+
+    if (legacyValue !== null) {
+      localStorage.setItem(currentKey, legacyValue);
+      localStorage.removeItem(legacyKey);
+    }
+  }
+}
+
 function loadSettings() {
   try {
     const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
@@ -1187,6 +1212,99 @@ function openMediaDb() {
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
+}
+
+function readLegacyMediaRecords() {
+  return new Promise((resolve, reject) => {
+    let databaseWasCreated = false;
+    const request = indexedDB.open(LEGACY_MEDIA_DB_NAME);
+
+    request.onupgradeneeded = () => {
+      databaseWasCreated = true;
+    };
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const db = request.result;
+
+      if (databaseWasCreated || !db.objectStoreNames.contains(MEDIA_STORE_NAME)) {
+        db.close();
+
+        if (databaseWasCreated) {
+          indexedDB.deleteDatabase(LEGACY_MEDIA_DB_NAME);
+        }
+
+        resolve([]);
+        return;
+      }
+
+      const transaction = db.transaction(MEDIA_STORE_NAME, "readonly");
+      const getAllRequest = transaction.objectStore(MEDIA_STORE_NAME).getAll();
+      let records = [];
+
+      getAllRequest.onsuccess = () => {
+        records = Array.isArray(getAllRequest.result) ? getAllRequest.result : [];
+      };
+      getAllRequest.onerror = () => reject(getAllRequest.error);
+      transaction.oncomplete = () => {
+        db.close();
+        resolve(records);
+      };
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error);
+    };
+  });
+}
+
+function deleteLegacyMediaDb() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.deleteDatabase(LEGACY_MEDIA_DB_NAME);
+
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+    request.onblocked = () => resolve();
+  });
+}
+
+async function migrateLegacyMediaDb() {
+  const records = await readLegacyMediaRecords();
+
+  if (records.length === 0) {
+    return;
+  }
+
+  const db = await openMediaDb();
+  let copied = false;
+
+  try {
+    await new Promise((resolve, reject) => {
+      const transaction = db.transaction(MEDIA_STORE_NAME, "readwrite");
+      const store = transaction.objectStore(MEDIA_STORE_NAME);
+      const countRequest = store.count();
+
+      countRequest.onsuccess = () => {
+        if (countRequest.result !== 0) {
+          return;
+        }
+
+        for (const record of records) {
+          store.put(record);
+        }
+
+        copied = true;
+      };
+      countRequest.onerror = () => reject(countRequest.error);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error);
+    });
+  } finally {
+    db.close();
+  }
+
+  if (copied) {
+    await deleteLegacyMediaDb();
+  }
 }
 
 function mediaStoreTransaction(db, mode) {
@@ -4183,11 +4301,18 @@ window.addEventListener("beforeunload", () => {
 });
 
 async function bootApp() {
+  migrateLegacyLocalStorage();
   loadSettings();
   setActiveLocale(appSettings.displayLanguage);
 
   try {
     await installProtectedUi();
+  } catch (err) {
+    console.error(err);
+  }
+
+  try {
+    await migrateLegacyMediaDb();
   } catch (err) {
     console.error(err);
   }

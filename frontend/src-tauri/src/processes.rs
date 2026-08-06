@@ -294,15 +294,15 @@ fn spawn_server(
     let mut command = Command::new(server_bin);
 
     command.current_dir(server_dir).stdin(Stdio::null());
-    command.env("UGASR_SERVER_LAUNCH_ID", launch_id);
-    command.env("UGASR_HELPER_MODEL_PATH", &model_paths.helper);
-    command.env("UGASR_WHISPER_MODEL_PATH", &model_paths.whisper);
-    command.env("UGASR_UYGHUR_MODEL_PATH", &model_paths.whisper);
-    command.env("UGASR_ASR_MODEL_FAMILY", &model_paths.family);
+    command.env("PICHIRFLOW_SERVER_LAUNCH_ID", launch_id);
+    command.env("PICHIRFLOW_HELPER_MODEL_PATH", &model_paths.helper);
+    command.env("PICHIRFLOW_WHISPER_MODEL_PATH", &model_paths.whisper);
+    command.env("PICHIRFLOW_UYGHUR_MODEL_PATH", &model_paths.whisper);
+    command.env("PICHIRFLOW_ASR_MODEL_FAMILY", &model_paths.family);
 
     if let Some(path) = log_path {
         let debug_log_path = path.with_file_name("ASR-debug.log");
-        command.env("UGASR_LOG_FILE", debug_log_path);
+        command.env("PICHIRFLOW_LOG_FILE", debug_log_path);
     }
 
     if let Some((stdout, stderr)) = open_server_logs(log_path, server_bin) {
@@ -314,15 +314,15 @@ fn spawn_server(
     #[cfg(windows)]
     match candidate.backend {
         AsrBackendPreference::Cpu => {
-            command.env("UGASR_REQUIRED_BACKEND", "cpu");
-            command.env("UGASR_DISABLE_GPU", "1");
-            command.env("UGASR_CPU_THREADS", "4");
-            command.env("UGASR_BACKEND_LABEL", "CPU");
+            command.env("PICHIRFLOW_REQUIRED_BACKEND", "cpu");
+            command.env("PICHIRFLOW_DISABLE_GPU", "1");
+            command.env("PICHIRFLOW_CPU_THREADS", "4");
+            command.env("PICHIRFLOW_BACKEND_LABEL", "CPU");
         }
         AsrBackendPreference::Cuda | AsrBackendPreference::Metal | AsrBackendPreference::Vulkan => {
-            command.env("UGASR_REQUIRED_BACKEND", candidate.backend.env_value());
-            command.env("UGASR_REQUIRE_GPU", "1");
-            command.env("UGASR_BACKEND_LABEL", candidate.backend.label());
+            command.env("PICHIRFLOW_REQUIRED_BACKEND", candidate.backend.env_value());
+            command.env("PICHIRFLOW_REQUIRE_GPU", "1");
+            command.env("PICHIRFLOW_BACKEND_LABEL", candidate.backend.label());
         }
     }
 
@@ -341,15 +341,15 @@ fn spawn_server(
     #[cfg(not(windows))]
     match candidate.backend {
         AsrBackendPreference::Cpu => {
-            command.env("UGASR_REQUIRED_BACKEND", "cpu");
-            command.env("UGASR_DISABLE_GPU", "1");
-            command.env("UGASR_CPU_THREADS", "4");
-            command.env("UGASR_BACKEND_LABEL", "CPU");
+            command.env("PICHIRFLOW_REQUIRED_BACKEND", "cpu");
+            command.env("PICHIRFLOW_DISABLE_GPU", "1");
+            command.env("PICHIRFLOW_CPU_THREADS", "4");
+            command.env("PICHIRFLOW_BACKEND_LABEL", "CPU");
         }
         AsrBackendPreference::Cuda | AsrBackendPreference::Metal | AsrBackendPreference::Vulkan => {
-            command.env("UGASR_REQUIRED_BACKEND", candidate.backend.env_value());
-            command.env("UGASR_REQUIRE_GPU", "1");
-            command.env("UGASR_BACKEND_LABEL", candidate.backend.label());
+            command.env("PICHIRFLOW_REQUIRED_BACKEND", candidate.backend.env_value());
+            command.env("PICHIRFLOW_REQUIRE_GPU", "1");
+            command.env("PICHIRFLOW_BACKEND_LABEL", candidate.backend.label());
         }
     }
 
@@ -375,9 +375,9 @@ fn spawn_server(
 
     #[cfg(all(not(windows), not(target_os = "macos")))]
     if candidate.backend.is_accelerated() {
-        command.env("UGASR_REQUIRED_BACKEND", candidate.backend.env_value());
-        command.env("UGASR_REQUIRE_GPU", "1");
-        command.env("UGASR_BACKEND_LABEL", candidate.backend.label());
+        command.env("PICHIRFLOW_REQUIRED_BACKEND", candidate.backend.env_value());
+        command.env("PICHIRFLOW_REQUIRE_GPU", "1");
+        command.env("PICHIRFLOW_BACKEND_LABEL", candidate.backend.label());
     }
 
     #[cfg(windows)]
@@ -546,7 +546,7 @@ fn health_body_matches(body: &str, service: LocalService, expected_launch_id: Op
     };
 
     if value.get("ok").and_then(|item| item.as_bool()) != Some(true)
-        || value.get("app").and_then(|item| item.as_str()) != Some("ugASR")
+        || value.get("app").and_then(|item| item.as_str()) != Some("PichirFlow")
         || value.get("service").and_then(|item| item.as_str()) != Some(service.label())
     {
         return false;
