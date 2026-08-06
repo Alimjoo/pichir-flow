@@ -410,6 +410,11 @@ public:
         cv_.notify_all();
     }
 
+    size_t queued_sample_count() const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return samples_.size();
+    }
+
 private:
     struct QueuedSample {
         float value = 0.0f;
@@ -417,7 +422,7 @@ private:
     };
 
     std::deque<QueuedSample> samples_;
-    std::mutex mutex_;
+    mutable std::mutex mutex_;
     std::condition_variable cv_;
 
     bool stop_requested_ = false;
@@ -1557,6 +1562,15 @@ static void release_vad_segments_for_backend(
         return;
     }
 
+    // Empty VAD handles can block inside whisper_vad_free_segments on some
+    // backend builds. They contain no segment payload, so do not let an empty
+    // result stall the only audio-processing worker.
+    if (n_segments <= 0) {
+        log_stage(std::string("Skipping empty ") + label + " release");
+        segs = nullptr;
+        return;
+    }
+
     if (preview_settings.skip_speech_vad_segment_release && n_segments > 0) {
         log_stage(
             std::string("Skipping ") + label +
@@ -1649,12 +1663,6 @@ static void process_chunk_16k(
     }
 
     const auto release_current_vad_segments = [&]() {
-        if (speech_energy_fallback && n == 0) {
-            log_stage("Skipping empty VAD segment release after energy fallback");
-            segs = nullptr;
-            return;
-        }
-
         release_vad_segments_for_backend(
             segs,
             n,
@@ -2053,6 +2061,19 @@ static void worker_loop(
                 log_stage("worker got chunk");
                 std::lock_guard<std::mutex> lock(app.processing_mutex);
 
+                PreviewSettings chunk_preview_settings = preview_settings;
+                const size_t queued_samples =
+                    session->audio_queue.queued_sample_count();
+
+                if (chunk_preview_settings.enabled &&
+                    queued_samples >= CHUNK_SAMPLES) {
+                    chunk_preview_settings.enabled = false;
+                    log_stage(
+                        "preview skipped to catch up: queued_samples=" +
+                        std::to_string(queued_samples)
+                    );
+                }
+
 	                process_chunk_16k(
 	                    app,
                         session,
@@ -2065,7 +2086,7 @@ static void worker_loop(
 	                    converter,
 	                    n_threads,
 	                    session->runtime_settings,
-	                    preview_settings
+	                    chunk_preview_settings
                 );
             }
 
