@@ -1,882 +1,1441 @@
-<!DOCTYPE html>
-<html lang="ug" dir="rtl">
+<!doctype html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>Uyghur Live ASR</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>PichirFlow Backend Lab</title>
 
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background: #f5f5f5;
-            direction: rtl;
-            text-align: right;
-        }
+  <style>
+    :root {
+      --bg: #090d12;
+      --surface: #10161f;
+      --surface-raised: #151d28;
+      --surface-soft: #0c121a;
+      --border: #263142;
+      --border-strong: #344258;
+      --text: #f3f6fa;
+      --muted: #8f9caf;
+      --accent: #ff665f;
+      --accent-hover: #ff7a74;
+      --green: #43d17d;
+      --yellow: #f6c453;
+      --red: #ff5d68;
+      --blue: #72a7ff;
+      --radius: 16px;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
 
-        .container {
-            position: relative;
-            max-width: 900px;
-            margin: 40px auto;
-            padding: 24px;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        }
+    * {
+      box-sizing: border-box;
+    }
 
-        h1 {
-            margin-top: 0;
-            font-size: 28px;
-        }
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% -10%, rgba(255, 102, 95, 0.16), transparent 32rem),
+        radial-gradient(circle at 90% 0%, rgba(65, 117, 255, 0.10), transparent 28rem),
+        var(--bg);
+    }
 
-        #serverLed {
-            position: absolute;
-            top: 18px;
-            left: 18px;
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            border: 1px solid rgba(0, 0, 0, 0.22);
-            background: #d11f1f;
-            box-shadow:
-                0 0 0 4px rgba(209, 31, 31, 0.14),
-                0 0 12px rgba(209, 31, 31, 0.58);
-            z-index: 20;
-        }
+    button,
+    input {
+      font: inherit;
+    }
 
-        #serverLed.server-available {
-            background: #18a058;
-            box-shadow:
-                0 0 0 4px rgba(24, 160, 88, 0.14),
-                0 0 12px rgba(24, 160, 88, 0.58);
-        }
+    button {
+      color: inherit;
+    }
 
-        #serverLed.server-working {
-            background: #d9a300;
-            box-shadow:
-                0 0 0 4px rgba(217, 163, 0, 0.16),
-                0 0 12px rgba(217, 163, 0, 0.6);
-        }
+    button:focus-visible,
+    input:focus-visible {
+      outline: 3px solid rgba(114, 167, 255, 0.38);
+      outline-offset: 2px;
+    }
 
-        #serverLed.server-offline {
-            background: #d11f1f;
-            box-shadow:
-                0 0 0 4px rgba(209, 31, 31, 0.14),
-                0 0 12px rgba(209, 31, 31, 0.58);
-        }
+    .shell {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 48px;
+    }
 
-        .buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            justify-content: flex-start;
-            align-items: center;
-            margin-bottom: 12px;
-        }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
 
-        button {
-            font-size: 18px;
-            padding: 10px 18px;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+    }
 
-        #startBtn {
-            background: #111;
-            color: white;
-        }
+    .brand-mark {
+      display: grid;
+      width: 44px;
+      height: 44px;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 13px;
+      color: white;
+      background: linear-gradient(145deg, #ff7a73, #e4434d);
+      box-shadow: 0 10px 28px rgba(255, 93, 104, 0.22);
+      font-size: 22px;
+      font-weight: 800;
+    }
 
-        #stopBtn {
-            background: #ddd;
-            color: #111;
-        }
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(21px, 3vw, 28px);
+      letter-spacing: -0.035em;
+    }
 
-        #fileBtn {
-            background: #1f6feb;
-            color: white;
-        }
+    .eyebrow {
+      margin: 0 0 3px;
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
 
-        #audioFile {
-            max-width: 320px;
-            font-size: 15px;
-            direction: ltr;
-        }
+    .connection-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 36px;
+      padding: 7px 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(16, 22, 31, 0.85);
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
 
-        .settings {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-            gap: 12px;
-            align-items: end;
-            margin: 0 0 14px;
-            direction: rtl;
-        }
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 0 4px rgba(255, 93, 104, 0.12);
+    }
 
-        .field {
-            display: grid;
-            gap: 6px;
-        }
+    .connection-badge.connecting .status-dot,
+    .connection-badge.working .status-dot {
+      background: var(--yellow);
+      box-shadow: 0 0 0 4px rgba(246, 196, 83, 0.12);
+    }
 
-        .field label {
-            color: #555;
-            font-size: 13px;
-        }
+    .connection-badge.online .status-dot {
+      background: var(--green);
+      box-shadow: 0 0 0 4px rgba(67, 209, 125, 0.12);
+    }
 
-        select,
-        input[type="range"] {
-            font: inherit;
-        }
+    .notice {
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+      margin-bottom: 18px;
+      padding: 13px 15px;
+      border: 1px solid rgba(114, 167, 255, 0.22);
+      border-radius: 13px;
+      color: #bdc9da;
+      background: rgba(65, 117, 255, 0.07);
+      font-size: 13px;
+      line-height: 1.55;
+    }
 
-        select {
-            min-height: 38px;
-            padding: 6px 10px;
-            border: 1px solid #d0d7de;
-            border-radius: 8px;
-            background: #fff;
-        }
+    .notice strong {
+      color: var(--text);
+    }
 
-        .range-row {
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 10px;
-            align-items: center;
-            direction: ltr;
-        }
+    .notice-icon {
+      flex: 0 0 auto;
+      color: var(--blue);
+      font-weight: 900;
+    }
 
-        #maxUnconfirmedValue {
-            min-width: 42px;
-            color: #111;
-            font-size: 14px;
-            text-align: left;
-        }
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.55fr) minmax(300px, 0.75fr);
+      gap: 18px;
+      align-items: start;
+    }
 
-        #status {
-            margin-bottom: 8px;
-            color: #555;
-            font-size: 14px;
-            direction: ltr;
-            text-align: left;
-        }
+    .stack {
+      display: grid;
+      gap: 18px;
+    }
 
-        .info {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 16px;
-            direction: ltr;
-            text-align: left;
-        }
+    .panel {
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(16, 22, 31, 0.92);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.18);
+    }
 
-        .info span {
-            padding: 4px 8px;
-            border: 1px solid #d0d7de;
-            border-radius: 999px;
-            color: #444;
-            background: #f6f8fa;
-            font-size: 12px;
-        }
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 15px 17px;
+      border-bottom: 1px solid var(--border);
+    }
 
-        .text-box {
-            min-height: 260px;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 12px;
-            font-size: 18px;
-            line-height: 1.9;
-            direction: rtl;
-            text-align: right;
-        }
+    .panel-header h2 {
+      margin: 0;
+      font-size: 14px;
+      letter-spacing: -0.01em;
+    }
 
-        #confirmed {
-            color: #000;
-        }
+    .panel-header p {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
 
-        #unconfirmed {
-            color: #999;
-        }
+    .panel-body {
+      padding: 17px;
+    }
 
-        .segments {
-            margin-top: 14px;
-            direction: ltr;
-            text-align: left;
-        }
+    .connection-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto auto;
+      gap: 9px;
+    }
 
-        .segments h2 {
-            margin: 0 0 8px;
-            color: #555;
-            font-size: 14px;
-            font-weight: 600;
-        }
+    .field {
+      display: grid;
+      gap: 7px;
+      min-width: 0;
+    }
 
-        #segments {
-            display: grid;
-            gap: 6px;
-            max-height: 180px;
-            overflow: auto;
-            padding: 0;
-            margin: 0;
-            list-style: none;
-            font-size: 13px;
-        }
+    .field label {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
 
-        #segments li {
-            padding: 7px 9px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            background: #fafafa;
-        }
+    input[type="text"] {
+      width: 100%;
+      min-height: 42px;
+      padding: 9px 11px;
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      color: var(--text);
+      background: var(--surface-soft);
+    }
 
-        .segment-time {
-            color: #666;
-            margin-right: 8px;
-        }
-    </style>
+    input[type="text"] {
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 42px;
+      padding: 9px 14px;
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      background: #1a2431;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 750;
+      transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+    }
+
+    .button:hover:not(:disabled) {
+      border-color: #4a5c75;
+      background: #222f40;
+      transform: translateY(-1px);
+    }
+
+    .button:disabled {
+      cursor: not-allowed;
+      opacity: 0.42;
+    }
+
+    .button.primary {
+      border-color: transparent;
+      color: white;
+      background: var(--accent);
+    }
+
+    .button.primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+
+    .button.danger {
+      border-color: rgba(255, 93, 104, 0.35);
+      color: #ff9aa1;
+      background: rgba(255, 93, 104, 0.08);
+    }
+
+    .button.ghost {
+      min-height: 32px;
+      padding: 5px 9px;
+      color: var(--muted);
+      background: transparent;
+      font-size: 11px;
+    }
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 520px);
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .range-line {
+      display: grid;
+      grid-template-columns: 1fr 42px;
+      gap: 10px;
+      align-items: center;
+      min-height: 42px;
+    }
+
+    .range-value {
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+      text-align: right;
+    }
+
+    .control-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .control-grid .button {
+      min-height: 48px;
+    }
+
+    .file-field {
+      margin-top: 12px;
+      padding: 11px;
+      border: 1px dashed var(--border-strong);
+      border-radius: 11px;
+      background: var(--surface-soft);
+    }
+
+    input[type="file"] {
+      width: 100%;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    input[type="file"]::file-selector-button {
+      margin-right: 10px;
+      padding: 6px 9px;
+      border: 0;
+      border-radius: 7px;
+      color: var(--text);
+      background: #263246;
+      cursor: pointer;
+    }
+
+    .level-wrap {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: center;
+      margin-top: 14px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+
+    .level-track {
+      overflow: hidden;
+      height: 7px;
+      border-radius: 99px;
+      background: #222c39;
+    }
+
+    .level-bar {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--green), var(--yellow), var(--red));
+      transition: width 80ms linear;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 9px;
+    }
+
+    .meta-card {
+      min-width: 0;
+      padding: 11px;
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      background: var(--surface-soft);
+    }
+
+    .meta-card span {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+
+    .meta-card strong {
+      display: block;
+      overflow: hidden;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 650;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      border-bottom: 1px solid var(--border);
+    }
+
+    .stat {
+      padding: 13px 16px;
+      border-right: 1px solid var(--border);
+    }
+
+    .stat:last-child {
+      border-right: 0;
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 750;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 4px;
+      font-family: var(--mono);
+      font-size: 14px;
+    }
+
+    .transcript {
+      min-height: 265px;
+      padding: 20px;
+      font-size: 18px;
+      line-height: 1.85;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .transcript.empty::before {
+      color: #526073;
+      content: "Confirmed and live preview text will appear here.";
+    }
+
+    #confirmed {
+      color: var(--text);
+    }
+
+    #unconfirmed {
+      color: #7e8ca0;
+    }
+
+    .segments-list {
+      display: grid;
+      gap: 8px;
+      max-height: 260px;
+      margin: 0;
+      padding: 0;
+      overflow: auto;
+      list-style: none;
+    }
+
+    .segments-list:empty::after {
+      padding: 14px 2px;
+      color: #526073;
+      content: "No confirmed segments yet.";
+      font-size: 13px;
+    }
+
+    .segment {
+      display: grid;
+      grid-template-columns: 88px minmax(0, 1fr);
+      gap: 11px;
+      padding: 9px 10px;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: var(--surface-soft);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .segment-time {
+      color: var(--blue);
+      font-family: var(--mono);
+      white-space: nowrap;
+    }
+
+    .log {
+      max-height: 360px;
+      margin: 0;
+      padding: 12px;
+      overflow: auto;
+      color: #b8c3d3;
+      background: #080c12;
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.65;
+    }
+
+    .log-line {
+      display: grid;
+      grid-template-columns: 72px 28px minmax(0, 1fr);
+      gap: 8px;
+      padding: 2px 0;
+    }
+
+    .log-time {
+      color: #526073;
+    }
+
+    .log-direction.in {
+      color: var(--green);
+    }
+
+    .log-direction.out {
+      color: var(--blue);
+    }
+
+    .log-direction.err {
+      color: var(--red);
+    }
+
+    .log-payload {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+    }
+
+    @media (max-width: 850px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .side-stack {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .side-stack .panel:last-child {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .shell {
+        width: min(100% - 20px, 1180px);
+        padding-top: 18px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+      }
+
+      .connection-badge {
+        max-width: 140px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .connection-row,
+      .settings-grid,
+      .side-stack {
+        grid-template-columns: 1fr;
+      }
+
+      .side-stack .panel:last-child {
+        grid-column: auto;
+      }
+
+      .connection-row .button {
+        width: 100%;
+      }
+
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .stat:nth-child(2) {
+        border-right: 0;
+      }
+
+      .stat:nth-child(-n + 2) {
+        border-bottom: 1px solid var(--border);
+      }
+    }
+  </style>
 </head>
 
 <body>
-    <div class="container">
-        <div id="serverLed" class="server-offline"></div>
-
-        <h1>-ئۇيغۇرچە ئاۋاز تونۇش</h1>
-
-        <div class="buttons">
-            <button id="startBtn">باشلاش</button>
-            <button id="stopBtn">توختاتىش</button>
-            <input id="audioFile" type="file" accept="audio/*,video/*" />
-            <button id="fileBtn">ھۆججەت</button>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">P</div>
+        <div>
+          <p class="eyebrow">Developer utility</p>
+          <h1>PichirFlow Backend Lab</h1>
         </div>
+      </div>
 
-        <div class="settings">
-            <div class="field">
-                <label for="maxUnconfirmedSec">Max unconfirmed</label>
-                <div class="range-row">
-                    <input id="maxUnconfirmedSec" type="range" min="3" max="20" step="1" value="15" />
-                    <span id="maxUnconfirmedValue">15s</span>
-                </div>
-            </div>
-        </div>
+      <div id="connectionBadge" class="connection-badge offline" title="WebSocket connection status">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span id="connectionLabel">Offline</span>
+      </div>
+    </header>
 
-        <div id="status">ئۇلىنىۋاتىدۇ...</div>
-        <div class="info">
-            <span id="connectionInfo">connection: offline</span>
-            <span id="backendInfo">backend: unknown</span>
-            <span id="settingsInfo">settings: 15s</span>
-            <span id="audioInfo">audio: idle</span>
-        </div>
-
-        <div class="text-box">
-            <span id="confirmed"></span><span id="unconfirmed"></span>
-        </div>
-
-        <div class="segments">
-            <h2>Segments</h2>
-            <ul id="segments"></ul>
-        </div>
+    <div class="notice">
+      <span class="notice-icon" aria-hidden="true">i</span>
+      <div>
+        Start the ASR backend before opening this page. The default endpoint is
+        <strong>ws://127.0.0.1:47831</strong>. This utility sends mono 16 kHz Float32 PCM and exposes the raw protocol events for debugging.
+      </div>
     </div>
 
-    <script>
-        let ws = null;
+    <section class="panel" style="margin-bottom: 18px;">
+      <div class="panel-header">
+        <div>
+          <h2>Backend connection</h2>
+          <p>Connect directly to a local or remote PichirFlow WebSocket service.</p>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="connection-row">
+          <div class="field">
+            <label for="wsUrl">WebSocket URL</label>
+            <input id="wsUrl" type="text" value="ws://127.0.0.1:47831" spellcheck="false" autocomplete="off">
+          </div>
+          <button id="connectBtn" class="button primary" type="button">Connect</button>
+          <button id="disconnectBtn" class="button" type="button">Disconnect</button>
+          <button id="healthBtn" class="button" type="button">Open health</button>
+        </div>
 
-        let audioContext = null;
-        let mediaStream = null;
-        let sourceNode = null;
-        let processorNode = null;
+        <div class="settings-grid">
+          <div class="field">
+            <label for="maxUnconfirmed">Maximum no-silence time</label>
+            <div class="range-line">
+              <input id="maxUnconfirmed" type="range" min="3" max="20" step="1" value="15">
+              <span id="maxUnconfirmedValue" class="range-value">15s</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-        let recording = false;
-        let fileStreaming = false;
-        let fileSessionActive = false;
-        let fileStreamToken = 0;
-        let ensureServerPromise = null;
+    <div class="grid">
+      <div class="stack">
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Live transcript</h2>
+              <p id="sessionStatus">Ready for a test session.</p>
+            </div>
+            <div>
+              <button id="clearBtn" class="button ghost" type="button">Clear</button>
+              <button id="downloadBtn" class="button ghost" type="button">Download .txt</button>
+            </div>
+          </div>
 
-        let confirmedText = "";
-        let unconfirmedText = "";
-        let activeMaxUnconfirmedSec = 15;
-        let segmentCount = 0;
+          <div class="stats">
+            <div class="stat"><span>Elapsed</span><strong id="elapsedStat">00:00</strong></div>
+            <div class="stat"><span>Audio sent</span><strong id="audioStat">0.0s</strong></div>
+            <div class="stat"><span>PCM chunks</span><strong id="chunksStat">0</strong></div>
+            <div class="stat"><span>Segments</span><strong id="segmentsStat">0</strong></div>
+          </div>
 
-        const TARGET_SAMPLE_RATE = 16000;
-        const FILE_CHUNK_MS = 100;
-        const DEFAULT_MODEL_MODE = "normal";
-        const MAX_UNCONFIRMED_MIN_SEC = 3;
-        const MAX_UNCONFIRMED_MAX_SEC = 20;
+          <div id="transcript" class="transcript empty" dir="auto" aria-live="polite">
+            <span id="confirmed"></span><span id="unconfirmed"></span>
+          </div>
+        </section>
 
-        const confirmedEl = document.getElementById("confirmed");
-        const unconfirmedEl = document.getElementById("unconfirmed");
-        const statusEl = document.getElementById("status");
-        const serverLedEl = document.getElementById("serverLed");
-        const connectionInfoEl = document.getElementById("connectionInfo");
-        const backendInfoEl = document.getElementById("backendInfo");
-        const settingsInfoEl = document.getElementById("settingsInfo");
-        const audioInfoEl = document.getElementById("audioInfo");
-        const segmentsEl = document.getElementById("segments");
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Confirmed segments</h2>
+              <p>Final VAD/ASR sections with backend timestamps.</p>
+            </div>
+          </div>
+          <div class="panel-body">
+            <ol id="segments" class="segments-list" dir="auto"></ol>
+          </div>
+        </section>
 
-        const startBtn = document.getElementById("startBtn");
-        const stopBtn = document.getElementById("stopBtn");
-        const fileBtn = document.getElementById("fileBtn");
-        const audioFileEl = document.getElementById("audioFile");
-        const maxUnconfirmedSecEl = document.getElementById("maxUnconfirmedSec");
-        const maxUnconfirmedValueEl = document.getElementById("maxUnconfirmedValue");
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Protocol log</h2>
+              <p>Incoming JSON, outgoing commands, and connection errors.</p>
+            </div>
+            <button id="clearLogBtn" class="button ghost" type="button">Clear log</button>
+          </div>
+          <div id="eventLog" class="log" role="log" aria-live="polite"></div>
+        </section>
+      </div>
 
-        function renderText() {
-            confirmedEl.textContent = confirmedText;
-            unconfirmedEl.textContent = unconfirmedText;
+      <aside class="stack side-stack">
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Test audio</h2>
+              <p>Start one input source at a time.</p>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="control-grid">
+              <button id="micBtn" class="button primary" type="button">Start microphone</button>
+              <button id="fileBtn" class="button" type="button">Transcribe file</button>
+              <button id="stopBtn" class="button" type="button">Stop &amp; drain</button>
+              <button id="cancelBtn" class="button danger" type="button">Cancel</button>
+            </div>
+
+            <div class="file-field">
+              <input id="audioFile" type="file" accept="audio/*,video/*">
+            </div>
+
+            <div class="level-wrap">
+              <span>Input</span>
+              <div class="level-track"><div id="levelBar" class="level-bar"></div></div>
+              <span id="levelValue">0%</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Server report</h2>
+              <p>Values announced by the connected backend.</p>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="meta-grid">
+              <div class="meta-card"><span>Backend</span><strong id="backendInfo">unknown</strong></div>
+              <div class="meta-card"><span>Model</span><strong id="modelInfo">unknown</strong></div>
+              <div class="meta-card"><span>Session</span><strong id="stateInfo">idle</strong></div>
+              <div class="meta-card"><span>Audio</span><strong id="sourceInfo">idle</strong></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Expected audio format</h2>
+              <p>The browser converts both inputs before sending.</p>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="meta-grid">
+              <div class="meta-card"><span>Sample rate</span><strong>16,000 Hz</strong></div>
+              <div class="meta-card"><span>Channels</span><strong>Mono</strong></div>
+              <div class="meta-card"><span>Encoding</span><strong>Float32 PCM</strong></div>
+              <div class="meta-card"><span>Chunk size</span><strong>100 ms file</strong></div>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    "use strict";
+
+    const TARGET_SAMPLE_RATE = 16000;
+    const FILE_CHUNK_MS = 100;
+    const MAX_LOG_LINES = 400;
+
+    const elements = {
+      wsUrl: document.getElementById("wsUrl"),
+      connectBtn: document.getElementById("connectBtn"),
+      disconnectBtn: document.getElementById("disconnectBtn"),
+      healthBtn: document.getElementById("healthBtn"),
+      connectionBadge: document.getElementById("connectionBadge"),
+      connectionLabel: document.getElementById("connectionLabel"),
+      maxUnconfirmed: document.getElementById("maxUnconfirmed"),
+      maxUnconfirmedValue: document.getElementById("maxUnconfirmedValue"),
+      micBtn: document.getElementById("micBtn"),
+      fileBtn: document.getElementById("fileBtn"),
+      stopBtn: document.getElementById("stopBtn"),
+      cancelBtn: document.getElementById("cancelBtn"),
+      audioFile: document.getElementById("audioFile"),
+      levelBar: document.getElementById("levelBar"),
+      levelValue: document.getElementById("levelValue"),
+      backendInfo: document.getElementById("backendInfo"),
+      modelInfo: document.getElementById("modelInfo"),
+      stateInfo: document.getElementById("stateInfo"),
+      sourceInfo: document.getElementById("sourceInfo"),
+      sessionStatus: document.getElementById("sessionStatus"),
+      elapsedStat: document.getElementById("elapsedStat"),
+      audioStat: document.getElementById("audioStat"),
+      chunksStat: document.getElementById("chunksStat"),
+      segmentsStat: document.getElementById("segmentsStat"),
+      transcript: document.getElementById("transcript"),
+      confirmed: document.getElementById("confirmed"),
+      unconfirmed: document.getElementById("unconfirmed"),
+      segments: document.getElementById("segments"),
+      eventLog: document.getElementById("eventLog"),
+      clearLogBtn: document.getElementById("clearLogBtn"),
+      clearBtn: document.getElementById("clearBtn"),
+      downloadBtn: document.getElementById("downloadBtn")
+    };
+
+    let socket = null;
+    let manualDisconnect = false;
+    let mediaStream = null;
+    let audioContext = null;
+    let sourceNode = null;
+    let processorNode = null;
+    let mutedOutputNode = null;
+    let recording = false;
+    let fileStreaming = false;
+    let fileToken = 0;
+    let sessionActive = false;
+    let confirmedText = "";
+    let unconfirmedText = "";
+    let sentSamples = 0;
+    let sentChunks = 0;
+    let segmentCount = 0;
+    let sessionStartedAt = 0;
+
+    function normalizedWsUrl() {
+      let value = elements.wsUrl.value.trim();
+      if (!/^wss?:\/\//i.test(value)) {
+        value = "ws://" + value;
+      }
+      return value;
+    }
+
+    function setConnectionState(state, label) {
+      elements.connectionBadge.className = "connection-badge " + state;
+      elements.connectionLabel.textContent = label;
+      updateControls();
+    }
+
+    function setSessionStatus(text) {
+      elements.sessionStatus.textContent = text;
+    }
+
+    function setSessionState(text) {
+      elements.stateInfo.textContent = text || "idle";
+    }
+
+    function logEvent(direction, payload) {
+      const line = document.createElement("div");
+      const time = document.createElement("span");
+      const arrow = document.createElement("span");
+      const message = document.createElement("span");
+      const now = new Date();
+
+      line.className = "log-line";
+      time.className = "log-time";
+      time.textContent = now.toLocaleTimeString([], {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      });
+      arrow.className = "log-direction " + direction;
+      arrow.textContent = direction === "in" ? "<-" : direction === "out" ? "->" : "!!";
+      message.className = "log-payload";
+      message.textContent = typeof payload === "string" ? payload : JSON.stringify(payload);
+
+      line.append(time, arrow, message);
+      elements.eventLog.appendChild(line);
+
+      while (elements.eventLog.childElementCount > MAX_LOG_LINES) {
+        elements.eventLog.firstElementChild.remove();
+      }
+      elements.eventLog.scrollTop = elements.eventLog.scrollHeight;
+    }
+
+    function renderTranscript() {
+      elements.confirmed.textContent = confirmedText;
+      elements.unconfirmed.textContent = unconfirmedText;
+      elements.transcript.classList.toggle("empty", !confirmedText && !unconfirmedText);
+    }
+
+    function resetTranscript() {
+      confirmedText = "";
+      unconfirmedText = "";
+      segmentCount = 0;
+      elements.segments.replaceChildren();
+      elements.segmentsStat.textContent = "0";
+      renderTranscript();
+    }
+
+    function resetStats() {
+      sentSamples = 0;
+      sentChunks = 0;
+      sessionStartedAt = Date.now();
+      elements.audioStat.textContent = "0.0s";
+      elements.chunksStat.textContent = "0";
+      elements.elapsedStat.textContent = "00:00";
+    }
+
+    function updateStats() {
+      elements.audioStat.textContent = (sentSamples / TARGET_SAMPLE_RATE).toFixed(1) + "s";
+      elements.chunksStat.textContent = String(sentChunks);
+    }
+
+    function updateElapsed() {
+      if (!sessionStartedAt) {
+        return;
+      }
+      const total = Math.max(0, Math.floor((Date.now() - sessionStartedAt) / 1000));
+      const minutes = Math.floor(total / 60);
+      const seconds = total % 60;
+      elements.elapsedStat.textContent = String(minutes).padStart(2, "0") + ":" + String(seconds).padStart(2, "0");
+    }
+
+    function updateControls() {
+      const open = socket && socket.readyState === WebSocket.OPEN;
+      const busy = recording || fileStreaming || sessionActive;
+      elements.connectBtn.disabled = Boolean(socket && (
+        socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING
+      ));
+      elements.disconnectBtn.disabled = !socket || socket.readyState >= WebSocket.CLOSING;
+      elements.micBtn.disabled = !open || busy;
+      elements.fileBtn.disabled = !open || busy || !elements.audioFile.files.length;
+      elements.stopBtn.disabled = !open || !busy;
+      elements.cancelBtn.disabled = !open || !busy;
+      elements.maxUnconfirmed.disabled = busy;
+    }
+
+    function connectWebSocket() {
+      if (socket && (
+        socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING
+      )) {
+        return;
+      }
+
+      let url;
+      try {
+        url = normalizedWsUrl();
+        new URL(url);
+      } catch (error) {
+        setConnectionState("offline", "Invalid URL");
+        logEvent("err", "Invalid WebSocket URL: " + elements.wsUrl.value);
+        return;
+      }
+
+      elements.wsUrl.value = url;
+      localStorage.setItem("pichirflow.backendLab.wsUrl", url);
+      manualDisconnect = false;
+      setConnectionState("connecting", "Connecting");
+      logEvent("out", "CONNECT " + url);
+
+      try {
+        socket = new WebSocket(url);
+      } catch (error) {
+        socket = null;
+        setConnectionState("offline", "Connection error");
+        logEvent("err", error.message || String(error));
+        return;
+      }
+
+      socket.binaryType = "arraybuffer";
+
+      socket.addEventListener("open", function () {
+        setConnectionState("online", "Connected");
+        setSessionStatus("Connected. Ready for a test session.");
+        logEvent("in", "WebSocket connected");
+      });
+
+      socket.addEventListener("close", function (event) {
+        const detail = "WebSocket closed (code " + event.code + (event.reason ? ", " + event.reason : "") + ")";
+        setConnectionState("offline", manualDisconnect ? "Disconnected" : "Offline");
+        setSessionStatus(detail);
+        setSessionState("idle");
+        elements.sourceInfo.textContent = "idle";
+        logEvent(manualDisconnect ? "out" : "err", detail);
+        sessionActive = false;
+        recording = false;
+        fileStreaming = false;
+        cleanupAudioResources();
+        updateControls();
+      });
+
+      socket.addEventListener("error", function () {
+        setConnectionState("offline", "Connection error");
+        logEvent("err", "WebSocket error. Confirm that the backend is running and the URL is correct.");
+      });
+
+      socket.addEventListener("message", handleServerMessage);
+      updateControls();
+    }
+
+    function disconnectWebSocket() {
+      manualDisconnect = true;
+      if (recording || fileStreaming || sessionActive) {
+        cancelSession();
+      }
+      if (socket && socket.readyState < WebSocket.CLOSING) {
+        socket.close(1000, "Backend Lab disconnect");
+      }
+    }
+
+    function sendCommand(type, extra) {
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        logEvent("err", "Cannot send " + type + ": WebSocket is not open");
+        return false;
+      }
+      const message = Object.assign({ type: type }, extra || {});
+      socket.send(JSON.stringify(message));
+      logEvent("out", message);
+      return true;
+    }
+
+    function handleServerMessage(event) {
+      let message;
+      try {
+        message = JSON.parse(event.data);
+      } catch (error) {
+        logEvent("err", "Non-JSON server message: " + String(event.data));
+        return;
+      }
+
+      logEvent("in", message);
+
+      if (message.type === "backend") {
+        elements.backendInfo.textContent = message.text || "unknown";
+      } else if (message.type === "model") {
+        elements.modelInfo.textContent = message.text || "unknown";
+      } else if (message.type === "status") {
+        handleStatus(message.text || "unknown");
+      } else if (message.type === "reset") {
+        resetTranscript();
+      } else if (message.type === "confirmed") {
+        confirmedText += message.text || "";
+        unconfirmedText = "";
+        renderTranscript();
+      } else if (message.type === "unconfirmed") {
+        unconfirmedText = message.text || "";
+        renderTranscript();
+      } else if (message.type === "segment") {
+        appendSegment(message);
+      }
+    }
+
+    function handleStatus(status) {
+      setSessionState(status);
+
+      if (status === "recording") {
+        sessionActive = true;
+        setConnectionState("working", "Recording");
+        setSessionStatus("Backend is accepting audio.");
+      } else if (status === "processing remaining audio") {
+        sessionActive = true;
+        setConnectionState("working", "Processing");
+        setSessionStatus("Stop received. The backend is draining queued audio through VAD and ASR.");
+        elements.sourceInfo.textContent = "finalizing";
+      } else if (status === "stopped" || status === "cancelled") {
+        sessionActive = false;
+        recording = false;
+        fileStreaming = false;
+        elements.sourceInfo.textContent = "idle";
+        setConnectionState("online", "Connected");
+        setSessionStatus(status === "stopped" ? "Transcription finished." : "Session cancelled and discarded.");
+        setInputLevel(0);
+      } else if (status === "connected") {
+        sessionActive = false;
+        setConnectionState("online", "Connected");
+        setSessionStatus("Connected. Ready for a test session.");
+      } else {
+        setConnectionState("working", status);
+        setSessionStatus(status);
+      }
+
+      updateControls();
+    }
+
+    function beginSession(source) {
+      const settings = {
+        asrLanguageCode: "auto",
+        maxUnconfirmedSec: Number(elements.maxUnconfirmed.value)
+      };
+
+      resetTranscript();
+      resetStats();
+      sessionActive = true;
+      elements.sourceInfo.textContent = source;
+      setSessionState("starting");
+      setConnectionState("working", "Starting");
+      setSessionStatus("Starting " + source + " test...");
+      updateControls();
+      return sendCommand("start", settings);
+    }
+
+    function sendPcm(samples) {
+      if (!sessionActive || !socket || socket.readyState !== WebSocket.OPEN || !samples.length) {
+        return false;
+      }
+      socket.send(samples.buffer);
+      sentSamples += samples.length;
+      sentChunks += 1;
+      updateStats();
+      return true;
+    }
+
+    function resampleBuffer(input, inputRate, outputRate) {
+      if (!input.length) {
+        return new Float32Array();
+      }
+      if (inputRate === outputRate) {
+        return new Float32Array(input);
+      }
+
+      const ratio = inputRate / outputRate;
+      const outputLength = Math.max(1, Math.round(input.length / ratio));
+      const output = new Float32Array(outputLength);
+
+      for (let index = 0; index < outputLength; index += 1) {
+        const position = index * ratio;
+        const left = Math.floor(position);
+        const right = Math.min(left + 1, input.length - 1);
+        const weight = position - left;
+        output[index] = input[left] * (1 - weight) + input[right] * weight;
+      }
+      return output;
+    }
+
+    function audioBufferToMono(buffer) {
+      const mono = new Float32Array(buffer.length);
+      for (let channel = 0; channel < buffer.numberOfChannels; channel += 1) {
+        const data = buffer.getChannelData(channel);
+        for (let index = 0; index < data.length; index += 1) {
+          mono[index] += data[index] / buffer.numberOfChannels;
         }
+      }
+      return mono;
+    }
 
-        function setStatus(text) {
-            statusEl.textContent = text;
-        }
+    function setInputLevel(peak) {
+      const percent = Math.max(0, Math.min(100, Math.round(peak * 180)));
+      elements.levelBar.style.width = percent + "%";
+      elements.levelValue.textContent = percent + "%";
+    }
 
-        function setConnectionInfo(text) {
-            connectionInfoEl.textContent = "connection: " + text;
-        }
+    async function startMicrophone() {
+      if (recording || fileStreaming || sessionActive) {
+        return;
+      }
 
-        function setBackendInfo(text) {
-            backendInfoEl.textContent = "backend: " + (text || "unknown");
-        }
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            channelCount: 1,
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false
+          }
+        });
 
-        function setAudioInfo(text) {
-            audioInfoEl.textContent = "audio: " + text;
-        }
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        audioContext = new AudioContextClass();
+        await audioContext.resume();
+        sourceNode = audioContext.createMediaStreamSource(mediaStream);
+        processorNode = audioContext.createScriptProcessor(4096, 1, 1);
+        mutedOutputNode = audioContext.createGain();
+        mutedOutputNode.gain.value = 0;
 
-        function clampNumber(value, min, max) {
-            return Math.max(min, Math.min(max, value));
-        }
-
-        function readStartSettings() {
-            const parsedMax = Number(maxUnconfirmedSecEl.value);
-
-            return {
-                maxUnconfirmedSec: clampNumber(
-                    Number.isFinite(parsedMax) ? parsedMax : 15,
-                    MAX_UNCONFIRMED_MIN_SEC,
-                    MAX_UNCONFIRMED_MAX_SEC
-                )
-            };
-        }
-
-        function renderSettingsInfo(settings = readStartSettings()) {
-            maxUnconfirmedSecEl.value = String(settings.maxUnconfirmedSec);
-            maxUnconfirmedValueEl.textContent = settings.maxUnconfirmedSec + "s";
-            settingsInfoEl.textContent =
-                "settings: " + settings.maxUnconfirmedSec + "s";
-        }
-
-        function setServerIndicator(state) {
-            serverLedEl.className = "";
-            serverLedEl.classList.add("server-" + state);
-        }
-
-        function setServerIndicatorFromStatus(text) {
-            if (
-                text === "connected" ||
-                text === "stopped" ||
-                text === "cancelled"
-            ) {
-                setServerIndicator("available");
-                return;
-            }
-
-            setServerIndicator("working");
-        }
-
-        function tauriInvoke() {
-            return window.__TAURI__?.core?.invoke || null;
-        }
-
-        async function ensureServerProcess() {
-            const invoke = tauriInvoke();
-
-            if (!invoke) {
-                return DEFAULT_MODEL_MODE;
-            }
-
-            if (ensureServerPromise) {
-                return ensureServerPromise;
-            }
-
-            setConnectionInfo("starting server");
-            ensureServerPromise = invoke("ensure_asr_server", {
-                modelMode: DEFAULT_MODEL_MODE
-            })
-                .then((resolvedMode) => resolvedMode || DEFAULT_MODEL_MODE)
-                .finally(() => {
-                    ensureServerPromise = null;
-                });
-
-            return ensureServerPromise;
-        }
-
-        function connectWebSocket() {
-            if (
-                ws &&
-                (ws.readyState === WebSocket.OPEN ||
-                 ws.readyState === WebSocket.CONNECTING)
-            ) {
-                return;
-            }
-
-            ws = new WebSocket("ws://localhost:47831");
-            // ws = new WebSocket("wss://53b2-84-120-210-30.ngrok-free.app");
-
-            ws.binaryType = "arraybuffer";
-            setConnectionInfo("connecting");
-
-            ws.onopen = () => {
-                setStatus("WebSocket ئۇلاندى");
-                setConnectionInfo("open");
-                setServerIndicator("available");
-            };
-
-            ws.onclose = () => {
-                setStatus("WebSocket تاقلاندى");
-                setConnectionInfo("closed");
-                setServerIndicator("offline");
-            };
-
-            ws.onerror = () => {
-                setStatus("WebSocket خاتالىق");
-                setConnectionInfo("error");
-                setServerIndicator("offline");
-            };
-
-            ws.onmessage = (event) => {
-                let msg;
-
-                try {
-                    msg = JSON.parse(event.data);
-                } catch (e) {
-                    console.error("Bad JSON:", event.data);
-                    return;
-                }
-
-                if (msg.type === "status") {
-                    setStatus(msg.text);
-                    setServerIndicatorFromStatus(msg.text);
-
-                    if (msg.text === "recording") {
-                        setAudioInfo("streaming");
-                    } else if (
-                        msg.text === "stopped" ||
-                        msg.text === "cancelled" ||
-                        msg.text === "connected"
-                    ) {
-                        if (msg.text === "stopped" || msg.text === "cancelled") {
-                            fileSessionActive = false;
-                            fileStreaming = false;
-                        }
-
-                        setAudioInfo("idle");
-                    } else {
-                        setAudioInfo(msg.text);
-                    }
-                }
-
-                if (msg.type === "reset") {
-                    confirmedText = "";
-                    unconfirmedText = "";
-                    segmentCount = 0;
-                    segmentsEl.replaceChildren();
-                    renderText();
-                }
-
-                if (msg.type === "backend") {
-                    setBackendInfo(msg.text);
-                }
-
-                if (msg.type === "model") {
-                    settingsInfoEl.textContent =
-                        "settings: " + activeMaxUnconfirmedSec + "s";
-                }
-
-                if (msg.type === "confirmed") {
-                    confirmedText += msg.text;
-                    unconfirmedText = "";
-                    renderText();
-                }
-
-                if (msg.type === "unconfirmed") {
-                    unconfirmedText = msg.text;
-                    renderText();
-                }
-
-                if (msg.type === "segment") {
-                    appendSegment(msg);
-                }
-            };
-        }
-
-        async function ensureWebSocket() {
-            await ensureServerProcess();
-
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                return;
-            }
-
-            if (
-                !ws ||
-                ws.readyState === WebSocket.CLOSED ||
-                ws.readyState === WebSocket.CLOSING
-            ) {
-                connectWebSocket();
-            }
-
-            await new Promise((resolve, reject) => {
-                const startedAt = Date.now();
-                const timer = setInterval(() => {
-                    if (ws && ws.readyState === WebSocket.OPEN) {
-                        clearInterval(timer);
-                        resolve();
-                    } else if (
-                        !ws ||
-                        ws.readyState === WebSocket.CLOSED ||
-                        Date.now() - startedAt > 5000
-                    ) {
-                        clearInterval(timer);
-                        reject(new Error("WebSocket connection timed out"));
-                    }
-                }, 50);
-            });
-
+        processorNode.onaudioprocess = function (event) {
+          if (!recording) {
             return;
+          }
+          const input = event.inputBuffer.getChannelData(0);
+          let peak = 0;
+          for (let index = 0; index < input.length; index += 1) {
+            peak = Math.max(peak, Math.abs(input[index]));
+          }
+          setInputLevel(peak);
+          sendPcm(resampleBuffer(input, audioContext.sampleRate, TARGET_SAMPLE_RATE));
+        };
+
+        sourceNode.connect(processorNode);
+        processorNode.connect(mutedOutputNode);
+        mutedOutputNode.connect(audioContext.destination);
+
+        if (!beginSession("microphone")) {
+          throw new Error("Unable to start backend session");
+        }
+        recording = true;
+        elements.sourceInfo.textContent = "microphone";
+        setSessionStatus("Microphone is streaming with browser voice processing disabled.");
+        updateControls();
+      } catch (error) {
+        await cleanupAudioResources();
+        sessionActive = false;
+        recording = false;
+        setSessionState("error");
+        elements.sourceInfo.textContent = "idle";
+        setSessionStatus("Microphone error: " + (error.message || String(error)));
+        logEvent("err", "Microphone error: " + (error.message || String(error)));
+        updateControls();
+      }
+    }
+
+    async function streamSelectedFile() {
+      const file = elements.audioFile.files[0];
+      if (!file || recording || fileStreaming || sessionActive) {
+        return;
+      }
+
+      const token = ++fileToken;
+      let decodeContext = null;
+
+      try {
+        fileStreaming = true;
+        elements.sourceInfo.textContent = "decoding file";
+        setSessionStatus("Decoding " + file.name + "...");
+        updateControls();
+
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        decodeContext = new AudioContextClass();
+        const raw = await file.arrayBuffer();
+        const decoded = await decodeContext.decodeAudioData(raw);
+
+        if (!fileStreaming || token !== fileToken) {
+          return;
         }
 
-        function resetTranscript() {
-            confirmedText = "";
-            unconfirmedText = "";
-            segmentCount = 0;
-            segmentsEl.replaceChildren();
-            renderText();
+        const mono = audioBufferToMono(decoded);
+        const pcm = resampleBuffer(mono, decoded.sampleRate, TARGET_SAMPLE_RATE);
+        await decodeContext.close();
+        decodeContext = null;
+
+        if (!beginSession("file")) {
+          throw new Error("Unable to start backend session");
         }
 
-        async function startServerSession() {
-            const settings = readStartSettings();
-            await ensureWebSocket();
+        const chunkSamples = Math.round(TARGET_SAMPLE_RATE * FILE_CHUNK_MS / 1000);
+        let offset = 0;
+        elements.sourceInfo.textContent = "file 0%";
 
-            activeMaxUnconfirmedSec = settings.maxUnconfirmedSec;
-            renderSettingsInfo(settings);
-
-            resetTranscript();
-            setServerIndicator("working");
-            setAudioInfo("starting");
-            ws.send(JSON.stringify({
-                type: "start",
-                maxUnconfirmedSec: activeMaxUnconfirmedSec
-            }));
+        while (offset < pcm.length && fileStreaming && token === fileToken) {
+          const end = Math.min(offset + chunkSamples, pcm.length);
+          sendPcm(pcm.slice(offset, end));
+          offset = end;
+          const progress = Math.round(offset / pcm.length * 100);
+          elements.sourceInfo.textContent = "file " + progress + "%";
+          setInputLevel(0);
+          await new Promise(function (resolve) {
+            window.setTimeout(resolve, FILE_CHUNK_MS);
+          });
         }
 
-        function appendSegment(msg) {
-            const item = document.createElement("li");
-            const time = document.createElement("span");
-            const text = document.createElement("span");
-            const startMs = Number(msg.start_ms);
-            const endMs = Number(msg.end_ms);
-
-            segmentCount++;
-            time.className = "segment-time";
-            time.textContent =
-                "#" + segmentCount + " " +
-                formatTimeMs(startMs) + "-" + formatTimeMs(endMs);
-            text.textContent = msg.text || "";
-
-            item.append(time, text);
-            segmentsEl.append(item);
-            segmentsEl.scrollTop = segmentsEl.scrollHeight;
+        if (fileStreaming && token === fileToken && sessionActive) {
+          fileStreaming = false;
+          sendCommand("stop");
+          elements.sourceInfo.textContent = "finalizing";
+          setSessionStatus("File sent. Waiting for the backend to drain remaining audio.");
         }
-
-        function formatTimeMs(ms) {
-            if (!Number.isFinite(ms) || ms < 0) {
-                return "--:--";
-            }
-
-            const totalSeconds = Math.floor(ms / 1000);
-            const minutes = Math.floor(totalSeconds / 60);
-            const seconds = totalSeconds % 60;
-
-            return String(minutes).padStart(2, "0") +
-                ":" + String(seconds).padStart(2, "0");
+      } catch (error) {
+        logEvent("err", "File error: " + (error.message || String(error)));
+        setSessionStatus("File error: " + (error.message || String(error)));
+        if (sessionActive) {
+          sendCommand("cancel");
         }
-
-        function cancelFileStream() {
-            fileStreaming = false;
-            fileStreamToken++;
+        sessionActive = false;
+        fileStreaming = false;
+        elements.sourceInfo.textContent = "idle";
+        updateControls();
+      } finally {
+        if (decodeContext) {
+          await decodeContext.close();
         }
+      }
+    }
 
-        function sendServerCommand(type, extra = {}) {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type, ...extra }));
-                return true;
-            }
+    async function cleanupAudioResources() {
+      recording = false;
 
-            return false;
+      if (processorNode) {
+        processorNode.onaudioprocess = null;
+        processorNode.disconnect();
+        processorNode = null;
+      }
+      if (sourceNode) {
+        sourceNode.disconnect();
+        sourceNode = null;
+      }
+      if (mutedOutputNode) {
+        mutedOutputNode.disconnect();
+        mutedOutputNode = null;
+      }
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(function (track) { track.stop(); });
+        mediaStream = null;
+      }
+      if (audioContext) {
+        const context = audioContext;
+        audioContext = null;
+        if (context.state !== "closed") {
+          await context.close();
         }
+      }
+      setInputLevel(0);
+    }
 
-        function resampleBuffer(input, inputSampleRate, outputSampleRate) {
-            if (input.length === 0) {
-                return new Float32Array();
-            }
+    async function stopAndDrain() {
+      if (!sessionActive && !recording && !fileStreaming) {
+        return;
+      }
+      fileStreaming = false;
+      fileToken += 1;
+      await cleanupAudioResources();
+      sendCommand("stop");
+      elements.sourceInfo.textContent = "finalizing";
+      setSessionState("stopping");
+      setConnectionState("working", "Processing");
+      setSessionStatus("Stop sent. Waiting while the backend drains queued audio through VAD and ASR.");
+      updateControls();
+    }
 
-            if (outputSampleRate === inputSampleRate) {
-                return new Float32Array(input);
-            }
+    async function cancelSession() {
+      fileStreaming = false;
+      fileToken += 1;
+      await cleanupAudioResources();
+      if (sessionActive) {
+        sendCommand("cancel");
+      }
+      sessionActive = false;
+      elements.sourceInfo.textContent = "idle";
+      setSessionState("cancelled");
+      setConnectionState(socket && socket.readyState === WebSocket.OPEN ? "online" : "offline", socket && socket.readyState === WebSocket.OPEN ? "Connected" : "Offline");
+      updateControls();
+    }
 
-            const ratio = inputSampleRate / outputSampleRate;
-            const outputLength = Math.max(1, Math.round(input.length / ratio));
-            const output = new Float32Array(outputLength);
+    function appendSegment(message) {
+      const item = document.createElement("li");
+      const time = document.createElement("span");
+      const text = document.createElement("span");
+      segmentCount += 1;
+      item.className = "segment";
+      time.className = "segment-time";
+      time.textContent = formatTime(message.start_ms) + "-" + formatTime(message.end_ms);
+      text.textContent = message.text || "";
+      item.append(time, text);
+      elements.segments.appendChild(item);
+      elements.segments.scrollTop = elements.segments.scrollHeight;
+      elements.segmentsStat.textContent = String(segmentCount);
+    }
 
-            for (let i = 0; i < outputLength; ++i) {
-                const position = i * ratio;
-                const left = Math.floor(position);
-                const right = Math.min(left + 1, input.length - 1);
-                const weight = position - left;
+    function formatTime(milliseconds) {
+      const value = Number(milliseconds);
+      if (!Number.isFinite(value) || value < 0) {
+        return "--:--";
+      }
+      const seconds = Math.floor(value / 1000);
+      const minutes = Math.floor(seconds / 60);
+      return String(minutes).padStart(2, "0") + ":" + String(seconds % 60).padStart(2, "0");
+    }
 
-                output[i] =
-                    input[left] * (1 - weight) +
-                    input[right] * weight;
-            }
+    function openHealthEndpoint() {
+      try {
+        const url = new URL(normalizedWsUrl());
+        url.protocol = url.protocol === "wss:" ? "https:" : "http:";
+        url.pathname = "/api/health";
+        url.search = "";
+        url.hash = "";
+        window.open(url.toString(), "_blank", "noopener,noreferrer");
+        logEvent("out", "OPEN " + url.toString());
+      } catch (error) {
+        logEvent("err", "Cannot build health URL: " + (error.message || String(error)));
+      }
+    }
 
-            return output;
+    function downloadTranscript() {
+      if (!confirmedText && !unconfirmedText) {
+        return;
+      }
+      const blob = new Blob([confirmedText + unconfirmedText], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "pichirflow-transcript.txt";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    }
+
+    elements.connectBtn.addEventListener("click", connectWebSocket);
+    elements.disconnectBtn.addEventListener("click", disconnectWebSocket);
+    elements.healthBtn.addEventListener("click", openHealthEndpoint);
+    elements.micBtn.addEventListener("click", startMicrophone);
+    elements.fileBtn.addEventListener("click", streamSelectedFile);
+    elements.stopBtn.addEventListener("click", stopAndDrain);
+    elements.cancelBtn.addEventListener("click", cancelSession);
+    elements.audioFile.addEventListener("change", updateControls);
+    elements.maxUnconfirmed.addEventListener("input", function () {
+      elements.maxUnconfirmedValue.textContent = elements.maxUnconfirmed.value + "s";
+    });
+    elements.clearBtn.addEventListener("click", resetTranscript);
+    elements.downloadBtn.addEventListener("click", downloadTranscript);
+    elements.clearLogBtn.addEventListener("click", function () {
+      elements.eventLog.replaceChildren();
+    });
+    elements.wsUrl.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        connectWebSocket();
+      }
+    });
+
+    window.addEventListener("beforeunload", function () {
+      manualDisconnect = true;
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        if (sessionActive) {
+          socket.send(JSON.stringify({ type: "cancel" }));
         }
+        socket.close(1000);
+      }
+    });
 
-        function audioBufferToMono(audioBuffer) {
-            const output = new Float32Array(audioBuffer.length);
-            const channels = audioBuffer.numberOfChannels;
-
-            for (let channel = 0; channel < channels; ++channel) {
-                const data = audioBuffer.getChannelData(channel);
-
-                for (let i = 0; i < data.length; ++i) {
-                    output[i] += data[i] / channels;
-                }
-            }
-
-            return output;
-        }
-
-        async function streamPcmChunks(pcm16k, token) {
-            const chunkSamples =
-                Math.round(TARGET_SAMPLE_RATE * FILE_CHUNK_MS / 1000);
-
-            let offset = 0;
-
-            while (offset < pcm16k.length) {
-                if (!fileStreaming || token !== fileStreamToken) {
-                    return false;
-                }
-
-                if (!ws || ws.readyState !== WebSocket.OPEN) {
-                    throw new Error("WebSocket closed");
-                }
-
-                const end = Math.min(offset + chunkSamples, pcm16k.length);
-                const chunk = pcm16k.slice(offset, end);
-
-                ws.send(chunk.buffer);
-
-                offset = end;
-                setAudioInfo(
-                    "file " + Math.round((offset / pcm16k.length) * 100) + "%"
-                );
-                await new Promise(resolve => setTimeout(resolve, 10));
-            }
-
-            return true;
-        }
-
-        async function startRecording() {
-            if (recording || fileStreaming) {
-                await stopRecording();
-            }
-
-            await startServerSession();
-
-            mediaStream = await navigator.mediaDevices.getUserMedia({
-                audio: {
-                    channelCount: 1,
-                    // Preserve computer-speaker playback in the mic signal.
-                    echoCancellation: false,
-                    noiseSuppression: false,
-                    autoGainControl: false
-                }
-            });
-
-            audioContext = new AudioContext();
-
-            sourceNode = audioContext.createMediaStreamSource(mediaStream);
-
-            processorNode = audioContext.createScriptProcessor(4096, 1, 1);
-
-            recording = true;
-
-            processorNode.onaudioprocess = (event) => {
-                if (!recording) {
-                    return;
-                }
-
-                if (!ws || ws.readyState !== WebSocket.OPEN) {
-                    return;
-                }
-
-                const input =
-                    event.inputBuffer.getChannelData(0);
-
-                const pcm16k =
-                    resampleBuffer(
-                        input,
-                        audioContext.sampleRate,
-                        TARGET_SAMPLE_RATE
-                    );
-
-                ws.send(pcm16k.buffer);
-            };
-
-            sourceNode.connect(processorNode);
-            processorNode.connect(audioContext.destination);
-
-            setStatus("ئۈنگە ئېلىۋاتىدۇ...");
-            setServerIndicator("working");
-            setAudioInfo("microphone");
-        }
-
-        async function streamAudioFile() {
-            const file = audioFileEl.files[0];
-
-            if (!file) {
-                setStatus("ئاۋاز ھۆججىتى تاللاڭ");
-                return;
-            }
-
-            if (recording || fileStreaming) {
-                await stopRecording();
-            }
-
-            await startServerSession();
-
-            fileStreaming = true;
-            fileSessionActive = true;
-            const token = ++fileStreamToken;
-
-            let decodeContext = null;
-
-            try {
-                setStatus("ھۆججەت ئوقۇلۇۋاتىدۇ...");
-                setServerIndicator("working");
-
-                const arrayBuffer = await file.arrayBuffer();
-
-                if (!fileStreaming || token !== fileStreamToken) {
-                    return;
-                }
-
-                decodeContext = new AudioContext();
-
-                const audioBuffer =
-                    await decodeContext.decodeAudioData(arrayBuffer);
-
-                if (!fileStreaming || token !== fileStreamToken) {
-                    return;
-                }
-
-                const mono = audioBufferToMono(audioBuffer);
-                const pcm16k =
-                    resampleBuffer(
-                        mono,
-                        audioBuffer.sampleRate,
-                        TARGET_SAMPLE_RATE
-                    );
-
-                await decodeContext.close();
-                decodeContext = null;
-
-                setStatus("ھۆججەت ئاڭلىتىلىۋاتىدۇ...");
-                setServerIndicator("working");
-                setAudioInfo("file 0%");
-
-                const finished = await streamPcmChunks(pcm16k, token);
-
-                if (
-                    finished &&
-                    fileStreaming &&
-                    token === fileStreamToken &&
-                    ws &&
-                    ws.readyState === WebSocket.OPEN
-                ) {
-                    sendServerCommand("stop");
-                    setStatus("ھۆججەت تاماملاندى. بىر تەرەپ قىلىنىۋاتىدۇ...");
-                    setServerIndicator("working");
-                }
-            } catch (e) {
-                console.error(e);
-                setStatus("ھۆججەت ئوقۇش خاتالىقى");
-
-                sendServerCommand("cancel");
-                fileSessionActive = false;
-            } finally {
-                if (decodeContext) {
-                    await decodeContext.close();
-                }
-
-                if (token === fileStreamToken) {
-                    fileStreaming = false;
-                }
-            }
-        }
-
-        async function stopRecording() {
-            const wasFileSession = fileStreaming || fileSessionActive;
-
-            recording = false;
-            cancelFileStream();
-            fileSessionActive = false;
-
-            if (processorNode) {
-                processorNode.disconnect();
-                processorNode = null;
-            }
-
-            if (sourceNode) {
-                sourceNode.disconnect();
-                sourceNode = null;
-            }
-
-            if (mediaStream) {
-                mediaStream.getTracks().forEach(track => track.stop());
-                mediaStream = null;
-            }
-
-            if (audioContext) {
-                await audioContext.close();
-                audioContext = null;
-            }
-
-            sendServerCommand(wasFileSession ? "cancel" : "stop");
-
-            if (wasFileSession) {
-                resetTranscript();
-                setStatus("ھۆججەت توختىتىلدى");
-                setAudioInfo("idle");
-                setServerIndicator(
-                    ws && ws.readyState === WebSocket.OPEN
-                        ? "available"
-                        : "offline"
-                );
-            } else {
-                setStatus("توختىدى. قالغان ئاۋاز بىر تەرەپ قىلىنىۋاتىدۇ...");
-                setAudioInfo("finalizing");
-                setServerIndicator("working");
-            }
-        }
-
-        maxUnconfirmedSecEl.oninput = () => renderSettingsInfo();
-        startBtn.onclick = startRecording;
-        stopBtn.onclick = stopRecording;
-        fileBtn.onclick = streamAudioFile;
-
-        renderSettingsInfo();
-        ensureServerProcess()
-            .catch((error) => {
-                console.warn("ASR server startup via Tauri failed:", error);
-            })
-            .finally(connectWebSocket);
-    </script>
+    const savedUrl = localStorage.getItem("pichirflow.backendLab.wsUrl");
+    if (savedUrl) {
+      elements.wsUrl.value = savedUrl;
+    }
+    updateControls();
+    window.setInterval(updateElapsed, 500);
+    connectWebSocket();
+  </script>
 </body>
 </html>

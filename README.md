@@ -16,7 +16,7 @@
   <a href="https://ko-fi.com/piyazon"><img src="https://img.shields.io/badge/Ko--fi-Support%20Piyazon-FF5E5B?logo=ko-fi&logoColor=white" alt="Support Piyazon on Ko-fi"></a>
 </p>
 
-PichirFlow is a cross-platform desktop application for private speech-to-text transcription. It records from a microphone, transcribes audio and video files, manages local transcription projects, and exports timestamped subtitles. Recognition runs locally through a native C++ ASR service; audio is not sent to a cloud transcription provider.
+PichirFlow is a cross-platform desktop application for private speech-to-text transcription. It records from a microphone, transcribes audio and video files, and supports real-time stream simulation for continuous transcription. It also manages local projects and exports timestamped subtitles. Recognition totally runs locally.
 
 ## Features
 
@@ -32,6 +32,7 @@ PichirFlow is a cross-platform desktop application for private speech-to-text tr
 - Metal acceleration on Apple Silicon and Vulkan builds for other supported release targets.
 - CPU fallback when a compatible accelerated backend is unavailable.
 - A local WebSocket API for custom integrations.
+- Real-time stream simulation for continuous audio transcription.
 
 ## Roadmap and to-do
 
@@ -51,6 +52,7 @@ This checklist records what PichirFlow already supports and the main areas plann
 - [x] Raw microphone capture that can acoustically hear computer-speaker playback.
 - [x] Cross-platform macOS, Windows, and Linux release workflows.
 - [x] Standalone local WebSocket API.
+- [x] Real-time stream simulation for continuous transcription.
 
 ### Planned and open for contributions
 
