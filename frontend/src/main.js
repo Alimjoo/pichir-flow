@@ -538,9 +538,11 @@ async function getMicrophoneStream() {
     return await getUserMedia({
       audio: {
         channelCount: 1,
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
+        // Preserve playback from the computer speakers in the microphone
+        // signal instead of treating it as echo/background noise.
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
       },
     });
   } catch (err) {
