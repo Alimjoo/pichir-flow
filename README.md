@@ -123,6 +123,15 @@ Download the package for your platform from [GitHub Releases](https://github.com
 
 Install the downloaded package normally for your operating system. On first launch, allow microphone access if you want to use live transcription. GPU drivers must support the backend included in your package; the application can fall back to CPU when an appropriate CPU sidecar is available.
 
+> [!NOTE]
+> **macOS:** PichirFlow is currently unsigned because the project does not yet have an Apple Developer account. If Gatekeeper prevents an official PichirFlow release from opening, move the app to `/Applications`, then run:
+>
+> ```bash
+> sudo xattr -rd com.apple.quarantine "/Applications/PichirFlow.app"
+> ```
+>
+> Only remove quarantine from a package you downloaded from the official PichirFlow releases page.
+
 Official packages bundle the ASR service, VAD model, both transcription models, and FFmpeg. They do not need a separate model download at runtime.
 
 ## Usage
