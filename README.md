@@ -18,6 +18,18 @@
 
 PichirFlow is a cross-platform desktop application for private speech-to-text transcription. It records from a microphone, transcribes audio and video files, and supports real-time stream simulation for continuous transcription. It also manages local projects and exports timestamped subtitles. Recognition totally runs locally.
 
+## Demo
+
+<p align="center">
+  <video src="https://huggingface.co/piyazon/pichier-flow-models/resolve/main/Recording_PichirFlow.mp4" controls width="900">
+    Your browser does not support embedded video.
+  </video>
+</p>
+
+<p align="center">
+  <a href="https://huggingface.co/piyazon/pichier-flow-models/resolve/main/Recording_PichirFlow.mp4"><strong>▶ Watch the PichirFlow demo</strong></a>
+</p>
+
 ## Features
 
 - Live microphone transcription with confirmed and unconfirmed text.
